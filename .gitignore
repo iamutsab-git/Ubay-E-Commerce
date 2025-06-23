@@ -1,0 +1,3 @@
+Shared ignores (apply to root, Ubay-frontend, and Ubay-backend)
+
+.DS_Store .env .idea .vscode/* !.vscode/extensions.json *.suo .ntvs*.njsproj *.sln *.sw?
