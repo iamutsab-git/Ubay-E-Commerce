@@ -28,21 +28,12 @@ const productSchema = new mongoose.Schema(
       required: true,
       default: 0,
     },
-    images: [
-      {
-        url: { type: String, required: true },
-        public_id: { type: String }, // for Cloudinary if used
-      },
-    ],
-    rating: {
-      type: Number,
-      default: 0,
+    images: {
+      url: { type: String },       // Cloudinary URL
+      public_id: { type: String }, // Cloudinary public_id
     },
-    numReviews: {
-      type: Number,
-      default: 0,
-    },
-    reviews: [
+      salesCount: { type: Number, default: 0 },
+          reviews: [
       {
         user: {
           type: mongoose.Schema.Types.ObjectId,
@@ -57,9 +48,8 @@ const productSchema = new mongoose.Schema(
         },
       },
     ],
-  
   },
-  { timestamps: true }
+  { timestamps: true } // Adds createdAt and updatedAt
 );
 
 export default mongoose.model('Product', productSchema);

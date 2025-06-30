@@ -82,3 +82,90 @@ export const updateProduct= async(req, res)=>{
             console.error(error);
         }
     };
+
+    export const getAllProducts = async(req,res)=>{
+        try{
+            const products = await Product.find()
+            res.status(200).json({
+            success: true,
+            count: products.length,
+            data: products
+             });
+    }catch(error){
+        res.status(500).json({
+            success: false,
+            message: "Error while fetching",
+            error: error.message,
+        });
+        console.error(error);
+    }
+};
+
+export const getProduct = async(req, res)=>{
+    try{
+        const product = await Product.findById(req.params.id);
+        if(!product){
+            return res.status(404).json({message:"Not found"})
+        }
+
+        res.status(200).json(product);
+
+    }catch(error){
+              res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+export const getPopularProducts = async (req, res) => {
+  try {
+    
+    const popularProducts = await Product.find()
+    //   .sort({ salesCount: -1 })  
+    //   .limit(8);          
+
+    res.status(200).json({
+    //   success: true,
+    //   count: popularProducts.length,
+      data: popularProducts,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching popular products",
+      error: error.message,
+    });
+  }
+};
+
+export const searchProducts = async (req, res) => {
+  try {
+ const { q, minPrice, maxPrice, category } = req.query;
+
+const filter = {};
+if (q) {
+  filter.$or = [
+    { name: { $regex: q, $options: 'i' } },
+    { description: { $regex: q, $options: 'i' } },
+  ];
+}
+if (minPrice || maxPrice) {
+  filter.price = {};
+  if (minPrice) filter.price.$gte = Number(minPrice);
+  if (maxPrice) filter.price.$lte = Number(maxPrice);
+}
+if (category) filter.category = category;
+
+const products = await Product.find(filter);
+
+    res.status(200).json({
+      success: true,
+      count: products.length,
+      data: products,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Search failed",
+      error: error.message,
+    });
+  }
+};

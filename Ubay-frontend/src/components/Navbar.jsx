@@ -1,9 +1,14 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import Ubay_logo from "../assets/UBAY_LOGO.png"
 import { Link } from 'react-router-dom'
 import { IoIosSearch } from "react-icons/io";
+import { AuthContext } from '../context/AuthContext';
+import { IoCartOutline } from "react-icons/io5";
+import { FaRegUser } from "react-icons/fa";
+
 
 const Navbar = () => {
+  const {currentUser} = useContext(AuthContext)
   return (
     <div className='bg-white border-y border-orange-400 my-1 sticky top-0 z-10   max-w-8xl'>
         <nav className='flex justify-between items-center  flex-row px-2 py-2 mx-6'>
@@ -60,19 +65,45 @@ const Navbar = () => {
 
                 </li>
                 </Link>
-            
-                <Link to="/signup">
+            {!currentUser? (
+              <>
+                <Link to="/login">
                 <li className='hover:text-orange-500 relative group'>
-                Sign Up
+                <FaRegUser/>
                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-orange-600 group-hover:w-full transition-all duration-300"></span>
 
                 </li>
                 </Link>
            
-                <Link to="/login">
+                {/* <Link to="/login">
                 <li className='hover:text-orange-500 relative group'>
                 Log in
                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-orange-600 group-hover:w-full transition-all duration-300"></span>
+                </li>
+                </Link> */}
+                </>
+                ):(
+                  <>
+                  <div className='flex items-center space-x-3'>
+                    <Link to="/profile"
+                    className='flex items-center relative group border border-transparent rounded-full hover:border-orange-500 transition-colors duration-300 '>
+                     <span> <img 
+                      src={
+                        currentUser.avatar ||  "https://images.icon-icons.com/3446/PNG/512/account_profile_user_avatar_icon_219236.png"
+                      }
+                      alt='User Avatar'
+                      className='w-7 h-7 rounder-full object-cover'/></span>
+                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-orange-600 group-hover:w-full transition-all duration-300"></span>
+                    </Link>
+                  
+                  </div>
+                  </>
+                )}
+                <Link to="/cart">
+                  <li className='hover:text-orange-500 relative group'>
+                  <span><IoCartOutline /></span>
+                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-orange-600 group-hover:w-full transition-all duration-300"></span>
+
                 </li>
                 </Link>
            
