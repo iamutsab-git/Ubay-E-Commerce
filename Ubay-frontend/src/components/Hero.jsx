@@ -56,7 +56,7 @@ const Hero = () => {
         
       </section>
         {/* Styled Product Card Section */}
-      <div className="bg-gray-300 sm:px-6 lg:px-8">
+      <div className="bg-gray-100 sm:px-6 lg:px-8">
         <ProductCard   products={popularProducts}  title="Popular Products" />
         <ProductCard   products={popularProducts}  title="Popular Products" />
         <ProductCard   products={popularProducts}  title="Popular Products" />

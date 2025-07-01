@@ -1,5 +1,6 @@
-import express from "express"
 import dotenv from "dotenv"
+dotenv.config();
+import express from "express"
 import mongoose from "mongoose";
 import AuthRoutes from "./Routes/AuthRoutes.js"
 import ProductRoutes from "./Routes/ProductRoutes.js"
@@ -7,7 +8,8 @@ import UserRoutes from "./Routes/UserRoutes.js"
 import OrderRoutes from "./Routes/OrderRoutes.js"
 import cookieParser from "cookie-parser";
 import cors from "cors";
-dotenv.config();
+
+
 
 
 const app = express();

@@ -28,10 +28,10 @@ const productSchema = new mongoose.Schema(
       required: true,
       default: 0,
     },
-    images: {
-      url: { type: String },       // Cloudinary URL
-      public_id: { type: String }, // Cloudinary public_id
-    },
+    images: [{
+      url: { type: String, required: true },       // Cloudinary URL
+      public_id: { type: String, required: true  }, // Cloudinary public_id
+    }],
       salesCount: { type: Number, default: 0 },
           reviews: [
       {

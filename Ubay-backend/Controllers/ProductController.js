@@ -1,31 +1,55 @@
 import { cloudinary } from "../Config/cloudinary.js";
 import Product from "../Models/ProductModel.js"
 
-export const addProduct= async (req, res)=>{
-    const {name, price,description, category,brand, stock}= req.body;
-    try{
-         let images = [];
-        if (req.file) {
-            const result = await cloudinary.uploader.upload(req.file.path, {
-                folder: "product-images",
-            });
-            images = [{
-                url: result.secure_url,  // ✅ Cloudinary CDN URL
-                public_id: result.public_id  // ✅ Cloudinary public_id for future deletion
-            }];
-        }
-        const newProduct = await Product.create({
-            name,price,description,category,brand,
-            stock,
-             images,
-        });
-        return res.status(200).json({message:"Product created successfully.", product : newProduct });
+export const addProduct = async (req, res) => {
+  const { name, price, description, category, brand, stock } = req.body;
 
-    }catch(error){
-        res.status(500).json({message:"Internal Server Error"});
-        console.error(error);
+  try {
+    const files = req.files || [];
+
+    if (files.length === 0) {
+      return res.status(400).json({ message: "No image files provided" });
     }
+
+    const images = [];
+
+    for (const file of files) {
+      const result = await cloudinary.uploader.upload(file.path, {
+        folder: "mern_uploads",
+      });
+
+      images.push({
+        url: result.secure_url,
+        public_id: result.public_id,
+      });
+    }
+
+    const newProduct = await Product.create({
+      name,
+      price,
+      description,
+      category,
+      brand,
+      stock,
+      images, // always an array
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Product created successfully.",
+      product: newProduct,
+    });
+  } catch (error) {
+    console.error("Product creation error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
 };
+
+
 export const removeProduct = async(req, res)=>{
     try {
         const { id } = req.params; // Assuming you pass product ID in URL

@@ -1,109 +1,156 @@
 import { useNavigate } from "react-router-dom";
-import React from "react";
+import React, { useState } from "react";
 import { toast } from "react-toastify";
 import { motion } from "framer-motion";
 
 const ProductCard = ({ product, products, title }) => {
   const navigate = useNavigate();
   const BASE_IMAGE_URL = "http://localhost:3000/";
-  const FALLBACK_IMAGE =
-    "https://sct.com.np/wp-content/uploads/2022/08/default-fallback-image.png";
-
+  const FALLBACK_IMAGE = "https://sct.com.np/wp-content/uploads/2022/08/default-fallback-image.png";
   const productList = product ? [product] : products;
-  console.log("ProductCard productList:", productList); // Debug
+  const [quantities, setQuantities] = useState({});
 
-  if (!productList?.length) return <div>No products available</div>;
+  if (!productList?.length) return <div className="text-center text-gray-500 py-8">No products available</div>;
 
   const cardVariants = {
     hover: {
-      scale: 1.05,
-      zIndex: 10,
-      transition: { duration: 0.2 },
+      y: -5,
+      boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
+      transition: { duration: 0.3, ease: "easeOut" }
     },
-    initial: { scale: 1 },
+    initial: { y: 0 }
   };
 
   const handleSinglePage = (productId) => {
     navigate(`/product/${productId}`);
   };
 
-  const handleCartClick = async (e, productItem) => {
+  const handleCartClick = async (e, productItem, quantity) => {
     e.stopPropagation();
     try {
-      toast.success(`${productItem.name} added to cart`);
+      toast.success(`${productItem.name} (Qty: ${quantity}) added to cart`);
     } catch (error) {
       toast.error("Failed to add to cart");
     }
   };
 
+  const handleBuyNow = (e, productItem) => {
+    e.stopPropagation();
+    navigate(`/checkout?product=${productItem._id}`);
+  };
+
+  const handleIncrement = (e, productId) => {
+    e.stopPropagation();
+    setQuantities((prev) => ({
+      ...prev,
+      [productId]: (prev[productId] || 1) + 1
+    }));
+  };
+
+  const handleDecrement = (e, productId) => {
+    e.stopPropagation();
+    setQuantities((prev) => ({
+      ...prev,
+      [productId]: Math.max(1, (prev[productId] || 1) - 1)
+    }));
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="mb-10"
-    >
+    <div className="container mx-auto px-4 py-8">
       {title && (
-        <h2 className="text-2xl font-bold text-orange-600 mb-2 px-4">{title}</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-6 pb-2 border-b border-gray-200">
+          {title}
+        </h2>
       )}
-      <div className="flex flex-wrap gap-2 pb-2 px-2">
-        {productList.map((item) => (
-          <motion.div
-            key={item._id}
-            variants={cardVariants}
-            initial="initial"
-            whileHover="hover"
-            className="flex-none w-56 relative h-72 rounded-xl overflow-hidden shadow-lg cursor-pointer bg-gray-800 border border-orange-500/30"
-            onClick={() => handleSinglePage(item._id)}
-          >
-            <img
-              src={
-                item.images?.url
-                  ? item.images.url
-                  : item.photo
-                  ? `${BASE_IMAGE_URL}${item.photo}`
-                  : FALLBACK_IMAGE
-              }
-              alt={item.name || item.title}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.target.src = FALLBACK_IMAGE;
-              }}
-            />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {productList.map((item) => {
+          const quantity = quantities[item._id] || 1;
+
+          return (
             <motion.div
-              initial={{ opacity: 0 }}
-              whileHover={{ opacity: 1 }}
-              className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex flex-col justify-end p-4"
+              key={item._id}
+              variants={cardVariants}
+              initial="initial"
+              whileHover="hover"
+              className="bg-white rounded-lg overflow-hidden border border-gray-200 cursor-pointer"
+              onClick={() => handleSinglePage(item._id)}
             >
-              <h3 className="text-white font-bold truncate">
-                {item.name || item.title}
-              </h3>
-              <p className="text-gray-300 text-sm mt-1 line-clamp-2">
-                {item.description || item.overview || "No description"}
-              </p>
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-orange-400 font-bold">
-                  Rs: {item.price || "???"}
-                </span>
+              <div className="relative pt-[100%] bg-gray-100">
+                <img
+                  src={item?.images?.[0]?.url || FALLBACK_IMAGE}
+                  alt={item.name || item.title}
+                  className="absolute top-0 left-0 w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = FALLBACK_IMAGE;
+                  }}
+                />
                 {item.salesCount && (
-                  <span className="text-orange-300 text-xs">
+                  <span className="absolute top-2 left-2 bg-orange-500 text-white text-xs px-2 py-1 rounded">
                     {item.salesCount} sold
                   </span>
                 )}
               </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={(e) => handleCartClick(e, item)}
-                className="mt-3 px-4 py-2 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700"
-              >
-                Add to Cart
-              </motion.button>
+
+              <div className="p-4">
+                <h3 className="text-gray-800 font-medium mb-1 truncate">
+                  {item.name || item.title}
+                </h3>
+                <p className="text-gray-500 text-sm mb-3 line-clamp-2 h-10">
+                  {item.description || item.overview || "No description"}
+                </p>
+
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-lg font-bold text-orange-600">
+                    Rs. {item.price?.toLocaleString() || "N/A"}
+                  </span>
+                  {item.originalPrice && (
+                    <span className="text-sm text-gray-400 line-through">
+                      Rs. {item.originalPrice.toLocaleString()}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center border border-gray-300 rounded-md">
+                    <button
+                      onClick={(e) => handleDecrement(e, item._id)}
+                      className="px-2 py-1 text-gray-600 hover:bg-gray-100"
+                    >
+                      -
+                    </button>
+                    <span className="px-2 text-sm w-8 text-center">{quantity}</span>
+                    <button
+                      onClick={(e) => handleIncrement(e, item._id)}
+                      className="px-2 py-1 text-gray-600 hover:bg-gray-100"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <div className="flex-1 flex gap-2">
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={(e) => handleCartClick(e, item, quantity)}
+                      className="flex-1 py-2 bg-gray-800 text-white text-sm rounded-md hover:bg-gray-700 transition-colors"
+                    >
+                      Add to Cart
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={(e) => handleBuyNow(e, item)}
+                      className="flex-1 py-2 bg-orange-600 text-white text-sm rounded-md hover:bg-orange-700 transition-colors"
+                    >
+                      Buy Now
+                    </motion.button>
+                  </div>
+                </div>
+              </div>
             </motion.div>
-          </motion.div>
-        ))}
+          );
+        })}
       </div>
-    </motion.div>
+    </div>
   );
 };
 
