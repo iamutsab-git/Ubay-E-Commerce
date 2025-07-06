@@ -59,7 +59,7 @@ export const removeProduct = async(req, res)=>{
             return res.status(404).json({ message: "Product not found" });
         }
 
-        // Optional: Delete Cloudinary images if they exist
+        //  Delete Cloudinary images if they exist
         if (product.images?.public_id) {
             await cloudinary.uploader.destroy(product.images.public_id);
         }
@@ -87,17 +87,28 @@ export const updateProduct= async(req, res)=>{
             if (category) product.category = category;
             if (brand) product.brand = brand;
             if (stock) product.stock = stock;
-            if (req.file) {
-                const result = await cloudinary.uploader.upload(req.file.path, {
-                    folder: "product-images",
-                });
-                product.images ={
-                    url: result.secure_url,
-                public_id: result.public_id
-                };
-                if (product.images?.public_id) {
-                await cloudinary.uploader.destroy(product.images.public_id);
-            } }
+            // If new images are uploaded
+    if (req.files && req.files.length > 0) {
+      // Delete old images from Cloudinary
+      for (const image of product.images) {
+        await cloudinary.uploader.destroy(image.public_id);
+      }
+
+      // Upload new images
+      const newImages = [];
+      for (const file of req.files) {
+        const result = await cloudinary.uploader.upload(file.path, {
+          folder: "mern_uploads",
+        });
+        newImages.push({
+          url: result.secure_url,
+          public_id: result.public_id,
+        });
+      }
+
+      // Replace images array
+      product.images = newImages;
+    }
 
             await product.save();
              return res.status(200).json({ message: "Product updated", product });

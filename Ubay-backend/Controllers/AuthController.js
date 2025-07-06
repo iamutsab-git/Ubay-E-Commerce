@@ -14,7 +14,7 @@ let avatar = null
 if (req.file) {
             // If using Cloudinary (recommended instead of local uploads)
             const result = await cloudinary.uploader.upload(req.file.path, {
-                folder: 'user-avatars',
+                folder: 'mern_uploads',
                 width: 150,
                 height: 150,
                 crop: 'fill'

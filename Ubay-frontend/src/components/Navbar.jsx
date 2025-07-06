@@ -89,7 +89,7 @@ const Navbar = () => {
                     className='flex items-center relative group border border-transparent rounded-full hover:border-orange-500 transition-colors duration-300 '>
                      <span> <img 
                       src={
-                        currentUser.avatar ||  "https://images.icon-icons.com/3446/PNG/512/account_profile_user_avatar_icon_219236.png"
+                        currentUser.avatar?.url ||  "https://images.icon-icons.com/3446/PNG/512/account_profile_user_avatar_icon_219236.png"
                       }
                       alt='User Avatar'
                       className='w-7 h-7 rounder-full object-cover'/></span>

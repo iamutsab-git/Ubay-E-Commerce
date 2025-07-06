@@ -5,7 +5,7 @@ import { addProduct, getAllProducts, getPopularProducts, getProduct, removeProdu
 const router = express.Router();
 
 router.post("/addproduct", upload.array("images",5), addProduct);
-router.put("/:id",updateProduct);
+router.put("/:id",upload.array("images",5),updateProduct);
 router.delete("/:id",removeProduct);
 router.get("/popular",getPopularProducts);
 router.get("/search",searchProducts);

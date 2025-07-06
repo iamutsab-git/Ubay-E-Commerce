@@ -14,6 +14,7 @@ import ProductPage from './pages/ProductPage'
 import Profile from './pages/profile'
 import Cart from './pages/Cart'
 import Dashboard from './admin/Dashboard'
+import UpdateProfile from './components/UpdateProfile'
 const App = () => {
   return (
     <div>
@@ -30,6 +31,7 @@ const App = () => {
         <Route path="/signup" element={<SignUp/>}/>
         <Route path="/login" element={<Login/>}/>
         <Route path="/profile" element={<><Navbar/><Profile /></>} />
+        <Route path="/edit" element={<><Navbar/><UpdateProfile /></>} />
         <Route path="/cart" element={<><Navbar/><Cart/></>} />
    <Route path="/product/:id" element={<ProductPage />} />
    <Route path="/admin/dashboard" element={<Dashboard/>}/>

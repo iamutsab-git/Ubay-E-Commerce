@@ -32,7 +32,7 @@ export const isAdmin = async (req, res, next) => {
     const user = await User.findById(req.userId);
     
     // 2. Check if user exists and is an admin
-    if (!user || user.role !== 'admin') {
+    if (!user || isAdmin !== 'admin') {
       return res.status(403).json({ 
         success: false,
         message: "Admin access required" 

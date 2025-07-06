@@ -2,7 +2,7 @@ import axios from "axios";
 
 
 export const apiRequest = axios.create({
-    baseURL: "http://localhost:3000/api",
+    baseURL: import.meta.env.VITE_BACKEND_URI,
     withCredentials: true,
 });
 
@@ -97,3 +97,121 @@ export const  getPopularProducts = async () => {
       throw new Error(error.res?.data?.message || 'Image upload failed');
     }
   };
+
+  // Order API functions
+export const getAllOrders = async () => {
+  try {
+    const res = await apiRequest.get('/order');
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to fetch orders');
+  }
+};
+
+export const getOrderById = async (id) => {
+  try {
+    const res = await apiRequest.get(`/order/${id}`);
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to fetch order');
+  }
+};
+
+export const updateOrderStatus = async (id, status) => {
+  try {
+    const res = await apiRequest.put(`/order/${id}/status`, { status });
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to update order status');
+  }
+};
+
+export const updateOrderToDelivered = async (id) => {
+  try {
+    const res = await apiRequest.put(`/order/${id}/deliver`);
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to mark order as delivered');
+  }
+};
+
+export const deleteOrder = async (id) => {
+  try {
+    const res = await apiRequest.delete(`/order/${id}`);
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to delete order');
+  }
+};
+
+// User API functions
+export const getAllUsers = async () => {
+  try {
+    const res = await apiRequest.get('/user');
+    return res.data.data; // Matches your response structure { success, count, data }
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to fetch user');
+  }
+};
+
+export const getUserById = async (id) => {
+  try {
+    const res = await apiRequest.get(`/user/${id}`);
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to fetch user');
+  }
+};
+
+export const updateUserProfile = async (id, userData) => {
+  try {
+    const formData = new FormData();
+    
+    // Append simple fields
+    if (userData.email) formData.append('email', userData.email);
+    if (userData.username) formData.append('username', userData.username);
+    if (userData.password) formData.append('password', userData.password);
+    
+    // Append avatar file if exists
+    if (userData.avatarFile) {
+      formData.append('avatar', userData.avatarFile);
+    }
+
+    const res = await apiRequest.put(`/user/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data.user; // Matches your response structure
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to update user profile');
+  }
+};
+
+export const deleteUser = async (id) => {
+  try {
+    const res = await apiRequest.delete(`/user/${id}`);
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to delete user');
+  }
+};
+
+// Admin-specific user management
+export const updateUserAsAdmin = async (id, userData) => {
+  try {
+    const res = await apiRequest.put(`/admin/user/${id}`, userData);
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to update user');
+  }
+};
+
+export const createUserAsAdmin = async (userData) => {
+  try {
+    const res = await apiRequest.post('/admin/user', userData);
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to create user');
+  }
+};

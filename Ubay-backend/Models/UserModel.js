@@ -7,7 +7,7 @@ const UserSchema = new mongoose.Schema(
             required: true,
             unique: true,
             trim: true,
-            match: [/^\S+@\S+.\S+$/,"Please Enter a valid E-mail"],
+             match: [/^\S+@\S+\.\S+$/, "Please Enter a valid E-mail"],
         },
         username: {
             type: String,
@@ -20,10 +20,14 @@ const UserSchema = new mongoose.Schema(
             required: true,
           minlength: [8,"password must be at least 8 characters long"]
         },
-        avatar:{
-            type: String,
+avatar: {
+  type: {
+    url: String,
+    public_id: String
+  },
+  default: {}
 
-        },
+},
         isAdmin : {
             type : Boolean,
             default : false

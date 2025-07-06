@@ -68,7 +68,7 @@ const Profile = () => {
             <div className="w-full flex flex-col items-center">
               <div className="mb-6 relative">
                 <img
-                  src={currentUser.avatar || "https://images.icon-icons.com/3446/PNG/512/account_profile_user_avatar_icon_219236.png" }
+                  src={currentUser?.avatar?.url || "https://images.icon-icons.com/3446/PNG/512/account_profile_user_avatar_icon_219236.png" }
                   alt="User Avatar"
                   className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-md hover:border-red-500 transition duration-200"
                   onError={() => setAvatarError(true)}
@@ -121,7 +121,7 @@ const Profile = () => {
             {/* Action buttons */}
             <div className="w-full flex flex-col sm:flex-row gap-4 mt-6">
               <Link
-                to="/edit-profile"
+                to="/edit"
                 className="flex-1 text-center px-6 py-3 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 transition duration-200"
               >
                 Edit Profile
