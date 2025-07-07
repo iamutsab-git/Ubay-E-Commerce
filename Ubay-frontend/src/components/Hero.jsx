@@ -27,7 +27,7 @@ const Hero = () => {
 
   return (
     <div>
-      <section className="relative h-[50vh] md:h-[80vh] overflow-hidden">
+      <section className="relative h-[50vh]  md:h-[80vh] overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-fixed"
          

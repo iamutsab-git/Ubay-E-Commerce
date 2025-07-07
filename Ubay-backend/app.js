@@ -6,8 +6,11 @@ import AuthRoutes from "./Routes/AuthRoutes.js"
 import ProductRoutes from "./Routes/ProductRoutes.js"
 import UserRoutes from "./Routes/UserRoutes.js"
 import OrderRoutes from "./Routes/OrderRoutes.js"
+import CartRoutes from "./Routes/CartRoutes.js"
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import session from "express-session";
+import MongoStore from "connect-mongo";
 
 
 
@@ -22,10 +25,27 @@ app.use(cors({
     credentials: true
 }));
 
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URL,
+    collectionName: "sessions",
+    ttl: 14 * 24 * 60 * 60 // 14 days in seconds
+  }),
+  cookie: {
+    maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days in ms
+    httpOnly: true,
+    sameSite: "lax",
+    secure: false // Set to true if using HTTPS
+  }
+}));
 app.use("/api/auth",AuthRoutes);
 app.use("/api/user",UserRoutes);
 app.use("/api/product",ProductRoutes);
 app.use("/api/order",OrderRoutes);
+app.use("/api/cart",CartRoutes);
 
 
 

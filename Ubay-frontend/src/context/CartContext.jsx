@@ -1,43 +1,100 @@
-import { createContext, useState, useContext } from "react";
+import { useState } from "react";
+import { useEffect } from "react";
+import { useContext } from "react";
+import { createContext } from "react";
+import { AuthContext } from "./AuthContext";
+import { apiRequest } from "../Services/api";
 
 
-const CartContext= createContext();
+const CartContext = createContext();
+export const CartProvider = ({ children }) => {
+  const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const {currentUser} = useContext(AuthContext)
 
-export const CartProvider = ({children})=>{
-  const[cartItems, setCartItems] = useState([]);
-  const [error, setError]= useState("");
-  const [loading, setLoading ] = useState(false);
+  useEffect(()=>{
+    const loadcart = async()=>{
+      try {
+        setLoading(true)
+        const res = await apiRequest.get("/cart/",{
+          headers:{
+            Authorization: `Bearer ${currentUser?.token}`,
+          },
+          withCredentials: true,
+        });
+        setCartItems(res.data.items);
+      } catch (error) {
+        console.error("Failed To Load Cart", error);
+        setCartItems([]);
+      }finally{
+        setLoading(false)
+      }
+  };
+   loadcart();
 
-  const addToCart = (productItem)=>{
-    try{
-      setLoading(true)
-       setCartItems([...cartItems, productItem]);
-    }catch(error){
-    console.log(error);
+},[currentUser])
+
+
+const addToCart = async(productItem, quantity)=>{
+  try{
+    setLoading(true)
+    const res = await apiRequest.post("/cart/add",{
+      productId: productItem._id,
+      quantity: Number(quantity),
+    },{
+          headers: {
+            Authorization: `Bearer ${currentUser?.token}`,
+          },
+          withCredentials: true,
+        }
+      );
+      setCartItems(res.data.items);
+  }catch(error){
+    console.log("Failed to Cart the Item", error);
+
   }finally{
-    setLoading(false);
+    setLoading(false)
   }
 };
 
-  const removeFromCart = (productId) => {
-     try{
-      setLoading(true)
-      setCartItems(cartItems.filter(product=> product.id !== productId));
-    }catch(error){
-    console.log(error);
-  }finally{
-    setLoading(false);
-  }
+
+ const removeFromCart = async (productId) => {
+    try {
+      setLoading(true);
+      const res = await apiRequest.delete("/cart/remove", {
+        data: { productId },
+        headers: {
+          Authorization: `Bearer ${currentUser?.token}`,
+        },
+        withCredentials: true,
+      });
+       // setCartItems(prev=> prev.filter(cart=>{
+    //   const item = cart.productItem || cart;
+    //   return item.id !== productId ;
+    // }))
+      setCartItems(res.data.items); // use updated cart from backend
+    } catch (error) {
+      console.error("Failed to remove item from cart", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const cartTotal = cartItems.reduce((total, product) => total + product.price, 0);
 
-  return (
-    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, cartTotal }}>
-      {children}
-    </CartContext.Provider>
+  const cartTotal = cartItems.reduce(
+    (total, item) => total + (item.product?.price || item.price || 0) * item.quantity,
+    0
+  );
+
+  const cartCount = cartItems.reduce(
+    (count, item) => count + item.quantity,
+    0
   );
   
+return (
+  <CartContext.Provider value={{cartItems, loading, addToCart, removeFromCart, cartCount, cartTotal}}>
+{children}
+  </CartContext.Provider>
+)
 };
-
-export const useCart = () => useContext(CartContext);
+export const useCart =()=> useContext(CartContext);

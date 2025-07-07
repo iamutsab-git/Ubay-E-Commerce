@@ -5,12 +5,28 @@ import { IoIosSearch } from "react-icons/io";
 import { AuthContext } from '../context/AuthContext';
 import { IoCartOutline } from "react-icons/io5";
 import { FaRegUser } from "react-icons/fa";
+import { apiRequest } from '../Services/api';
+import { useState } from 'react';
 
+const[loading, setLoading] = useState(false);
+const handleSearch=async(e)=>{
+  e.stopPropagation();
+  e.preventDefault();
+  
+  try{
+    setLoading(true);
+  await searchProducts();
+  }catch(error){
+    console.error("failed to get searched items",error)
+  }finally{
+    setLoading(false)
+  }
+}
 
 const Navbar = () => {
   const {currentUser} = useContext(AuthContext)
   return (
-    <div className='bg-white border-y border-orange-400 my-1 sticky top-0 z-10   max-w-8xl'>
+    <div className='bg-white border border-orange-400 my-1 sticky top-0 z-10  max-w-8xl'>
         <nav className='flex justify-between items-center  flex-row px-2 py-2 mx-6'>
       <div  >
         <Link to="/">
@@ -22,7 +38,7 @@ const Navbar = () => {
       </div>
       <div className="border border-orange-400 rounded-full flex items-center p-2 w-70">
         <IoIosSearch className='mr-3  '/>
-        <form>
+        <form onSubmit={handleSearch}>
         <input
         type="search"
         name="search"
