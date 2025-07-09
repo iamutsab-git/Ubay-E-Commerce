@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { apiRequest } from '../Services/api.js';
-import ProductCard from '../Card/ProductCard';
+import { apiRequest, getProductDetails } from '../Services/api';
+import ProductCard from '../Card/ProductCard.jsx';
 import {toast }from 'react-toastify';
 import { FaShoppingCart, FaStar, FaChevronLeft } from 'react-icons/fa';
 
@@ -18,12 +18,12 @@ const ProductPage = () => {
       try {
         setLoading(true);
         // Fetch main product
-        const productRes = await apiRequest.get(`/product/${id}`);
-        setProduct(productRes.data);
+        const data = await getProductDetails(id)
+        setProduct(data);
         
         // Fetch related products (same category)
-        const relatedRes = await apiRequest.get(`/product?category=${productRes.data.category}&limit=4`);
-        setRelatedProducts(relatedRes.data);
+        // const relatedRes = await apiRequest.get(`/product?category=${productRes.data.category}&limit=4`);
+        // setRelatedProducts(relatedRes.data);
       } catch (error) {
         toast.error('Failed to load product');
         navigate('/');

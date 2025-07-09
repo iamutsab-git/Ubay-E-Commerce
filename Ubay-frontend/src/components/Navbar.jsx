@@ -1,30 +1,48 @@
-import React, { useContext } from 'react'
+import React, { useContext, useState } from 'react'
 import Ubay_logo from "../assets/UBAY_LOGO.png"
 import { Link } from 'react-router-dom'
 import { IoIosSearch } from "react-icons/io";
 import { AuthContext } from '../context/AuthContext';
 import { IoCartOutline } from "react-icons/io5";
 import { FaRegUser } from "react-icons/fa";
-import { apiRequest } from '../Services/api';
-import { useState } from 'react';
-
-const[loading, setLoading] = useState(false);
-const handleSearch=async(e)=>{
-  e.stopPropagation();
-  e.preventDefault();
-  
-  try{
-    setLoading(true);
-  await searchProducts();
-  }catch(error){
-    console.error("failed to get searched items",error)
-  }finally{
-    setLoading(false)
-  }
-}
+import {  searchProducts } from '../Services/api';
 
 const Navbar = () => {
-  const {currentUser} = useContext(AuthContext)
+    const {currentUser} = useContext(AuthContext)
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState("");
+const [searchResults, setSearchResults] = useState([]);
+const [searchQuery, setSearchQuery] = useState('');
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const query = formData.get('search');
+
+    if (!query.trim()) return;
+
+    try {
+      setLoading(true);
+      const result = await searchProducts(query);
+      console.log("API Response:", result); 
+       const formattedResults = result.data.map(product => ({
+      id: product._id, // MongoDB uses _id
+      name: product.name,
+      price: product.price,
+      image: product.images[0]?.url || "/default-product.jpg" // Take first image
+    }));
+      setSearchResults(formattedResults)
+      setSearchQuery(query)
+    } catch (error) {
+      setError('Search failed');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className='bg-white border border-orange-400 my-1 sticky top-0 z-10  max-w-8xl'>
         <nav className='flex justify-between items-center  flex-row px-2 py-2 mx-6'>
@@ -36,16 +54,45 @@ const Navbar = () => {
         className='w-20 h-10 px-2 '/>
         </Link>
       </div>
-      <div className="border border-orange-400 rounded-full flex items-center p-2 w-70">
-        <IoIosSearch className='mr-3  '/>
-        <form onSubmit={handleSearch}>
-        <input
-        type="search"
-        name="search"
-        placeholder="Search"
-        className="outline-none flex-1 "/>
-        </form>
+      <div className='relative'>
+    <div className="border border-orange-400 rounded-full flex items-center p-2 w-72">
+  <form onSubmit={handleSearch} className="flex items-center w-full">
+    <button type="submit" aria-label="Search" className="mr-2">
+      <IoIosSearch className="text-lg"/>
+    </button>
+    <input
+      type="search"
+      name="search"
+      placeholder="Search products..."
+      className="outline-none flex-1 bg-transparent"
+      aria-label="Search products"
+    />
+  </form>
+</div>
+
+ {searchResults.length > 0 && (
+   <div className="absolute top-full left-0 mt-2 w-full bg-white shadow-lg rounded-lg z-[1000] max-h-96 overflow-y-auto border-2 border-orange-500">
+      <div className="p-2 border-b">
+        <p className="font-semibold">Results for "{searchQuery}"</p>
       </div>
+      {searchResults.map(product => (
+        <div key={product.id} className="p-3 hover:bg-gray-100 cursor-pointer border-b">
+          <div className="flex items-center">
+            <img 
+              src={product.image} 
+              alt={product.name} 
+              className="w-10 h-10 object-cover mr-3"
+            />
+            <div>
+              <p className="font-medium">{product.name}</p>
+              <p className="text-sm text-gray-600">${product.price.toFixed(2)}</p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+  </div>
       <div>
         <ul className='list-none flex justify-between space-x-4 items-center flex-row  '>
         

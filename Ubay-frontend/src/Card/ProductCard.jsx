@@ -16,7 +16,7 @@ const ProductCard = ({ product, products, title }) => {
   }
 
   const handleSinglePage = (productId) => {
-    navigate(`/product/${productId}`);
+    navigate("/product/:id");
   };
 
   const handleCartClick = async (e, productItem, quantity) => {
