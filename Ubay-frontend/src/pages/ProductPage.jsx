@@ -5,12 +5,15 @@ import { apiRequest, getProductDetails } from '../Services/api';
 import ProductCard from '../Card/ProductCard.jsx';
 import {toast }from 'react-toastify';
 import { FaShoppingCart, FaStar, FaChevronLeft } from 'react-icons/fa';
+import { IoBackspaceOutline, IoBagCheckOutline, IoCheckboxOutline } from 'react-icons/io5';
+import { useCart } from '../context/CartContext.jsx';
 
 const ProductPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const {addToCart} = useCart();
 
 
   useEffect(() => {
@@ -37,16 +40,23 @@ const ProductPage = () => {
 
   const handleAddToCart = async () => {
     try {
-      await apiRequest.post('/cart', { productId: id, quantity: 1 });
+      await 
       toast.success('Added to cart!');
     } catch (error) {
       toast.error('Failed to add to cart');
     }
   };
+  const handleBuy = async()=>{
+    try{
+      await addToCart(productItem, quantity);
+    }catch(error){
+      toast.error("Can't Proceed")
+    }
+  }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>;
   if (!product) return <div className="min-h-screen flex items-center justify-center text-white">Product not found</div>;
-
+  
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -58,7 +68,7 @@ const ProductPage = () => {
         {/* Back button */}
         <button 
           onClick={() => navigate(-1)}
-          className="flex items-center text-gray-300 hover:text-white mb-8"
+          className="flex items-center text-gray-100 hover:text-orange-400 mb-8"
         >
           <FaChevronLeft className="mr-2" /> Back to products
         </button>
@@ -68,7 +78,7 @@ const ProductPage = () => {
           {/* Product image */}
           <div className="bg-gray-800 rounded-xl overflow-hidden">
             <img
-              src={product.images?.url || `http://localhost:3000/api/${product.photo}`}
+              src= {product.images?.[0].url}
               alt={product.name}
               className="w-full h-full object-cover"
               onError={(e) => {
@@ -79,7 +89,7 @@ const ProductPage = () => {
 
           {/* Product details */}
           <div className="space-y-6">
-            <h1 className="text-3xl font-bold">{product.name}</h1>
+            <h1 className="text-3xl font-bold hover:text-orange-400">{product.name}</h1>
             
             {/* Rating and price */}
             <div className="flex items-center justify-between">
@@ -90,11 +100,11 @@ const ProductPage = () => {
                     className={i < Math.floor(product.rating || 0) ? 'text-yellow-400' : 'text-gray-500'} 
                   />
                 ))}
-                <span className="ml-2 text-gray-300">
+                <span className="ml-2 text-gray-300 hover:text-orange-400">
                   ({product.numReviews || 0} reviews)
                 </span>
               </div>
-              <p className="text-2xl font-bold">Rs. {product.price}</p>
+              <p className="text-2xl font-bold hover:text-orange-400">Rs. {product.price}</p>
             </div>
 
             {/* Description */}
@@ -119,25 +129,39 @@ const ProductPage = () => {
               </div>
               {product.salesCount && (
                 <div>
-                  <span className="text-gray-400">Popularity:</span>
-                  <p>{product.salesCount} sold</p>
+                  <span className="text-gray-200">Popularity:</span>
+                  <p>{product.salesCount}sold</p>
                 </div>
               )}
             </div>
 
             {/* Add to cart */}
+            <div className='flex justify-between gap-8'>
             <button
               onClick={handleAddToCart}
               disabled={product.stock <= 0}
               className={`flex items-center justify-center w-full py-3 px-6 rounded-lg font-medium ${
                 product.stock <= 0
                   ? 'bg-gray-600 cursor-not-allowed'
-                  : 'bg-red-600 hover:bg-red-700'
+                  : 'bg-gray-600 hover:bg-orange-700'
               }`}
             >
               <FaShoppingCart className="mr-2" />
               {product.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
             </button>
+              <button
+              onClick={handleBuy}
+              disabled={product.stock <= 0}
+              className={`flex items-center justify-center w-full py-3 px-6 rounded-lg font-medium ${
+                product.stock <= 0
+                  ? 'bg-gray-600 cursor-not-allowed'
+                  : 'bg-orange-600 hover:bg-orange-700'
+              }`}
+            >
+              <IoBagCheckOutline className="mr-2" />
+              {product.stock <= 0 ? 'Out of Stock' : 'Buy Now'}
+            </button>
+            </div>
           </div>
         </div>
 

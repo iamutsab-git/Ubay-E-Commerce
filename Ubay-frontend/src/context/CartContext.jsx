@@ -41,13 +41,14 @@ const addToCart = async(productItem, quantity)=>{
     const res = await apiRequest.post("/cart/add",{
       productId: productItem._id,
       quantity: Number(quantity),
+   
     },{
           headers: {
             Authorization: `Bearer ${currentUser?.token}`,
           },
           withCredentials: true,
         }
-      );
+      ); 
       setCartItems(res.data.items);
   }catch(error){
     console.log("Failed to Cart the Item", error);
@@ -58,7 +59,9 @@ const addToCart = async(productItem, quantity)=>{
 };
 
 
- const removeFromCart = async (productId) => {
+ const removeFromCart = async ( productId) => {
+  
+  
     try {
       setLoading(true);
       const res = await apiRequest.delete("/cart/remove", {

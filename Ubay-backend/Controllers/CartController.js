@@ -59,7 +59,8 @@ const calculateCartMetrics = (cart) => {
     cartCount: cart.items.reduce((sum, item) => sum + item.quantity, 0),
     items: cart.items.map(item => ({
       ...item.toObject(),
-      price: item.product.price
+      price: item.product.price,
+      
     }))
   };
 };

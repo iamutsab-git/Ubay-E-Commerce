@@ -1,14 +1,16 @@
 import React, { useContext, useState } from 'react'
 import Ubay_logo from "../assets/UBAY_LOGO.png"
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { IoIosSearch } from "react-icons/io";
 import { AuthContext } from '../context/AuthContext';
 import { IoCartOutline } from "react-icons/io5";
 import { FaRegUser } from "react-icons/fa";
 import {  searchProducts } from '../Services/api';
+import { IoClose } from 'react-icons/io5';
 
 const Navbar = () => {
     const {currentUser} = useContext(AuthContext)
+    const navigate = useNavigate()
 const [loading, setLoading] = useState(false);
 const [error, setError] = useState("");
 const [searchResults, setSearchResults] = useState([]);
@@ -57,23 +59,28 @@ const [searchQuery, setSearchQuery] = useState('');
       <div className='relative'>
     <div className="border border-orange-400 rounded-full flex items-center p-2 w-72">
   <form onSubmit={handleSearch} className="flex items-center w-full">
-    <button type="submit" aria-label="Search" className="mr-2">
-      <IoIosSearch className="text-lg"/>
-    </button>
     <input
       type="search"
       name="search"
       placeholder="Search products..."
-      className="outline-none flex-1 bg-transparent"
+      className="outline-none flex-1 bg-white"
       aria-label="Search products"
     />
+    <button type="submit" aria-label="Search" className="mr-2">
+      <IoIosSearch className="text-lg"/>
+    </button>
   </form>
 </div>
 
  {searchResults.length > 0 && (
    <div className="absolute top-full left-0 mt-2 w-full bg-white shadow-lg rounded-lg z-[1000] max-h-96 overflow-y-auto border-2 border-orange-500">
-      <div className="p-2 border-b">
+      <div className="flex justify-between p-2 border-b">
         <p className="font-semibold">Results for "{searchQuery}"</p>
+        <button 
+        title='search-dropdown-close'
+        onClick={()=> setSearchResults(0) }
+        className='text-gray-600 hover:text-white hover:bg-slate-400 rounded-full transition-all duration-300 '
+        ><IoClose/></button>
       </div>
       {searchResults.map(product => (
         <div key={product.id} className="p-3 hover:bg-gray-100 cursor-pointer border-b">

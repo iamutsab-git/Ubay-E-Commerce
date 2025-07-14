@@ -1,6 +1,7 @@
 import React from 'react';
-import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaEnvelope, FaMapMarkerAlt, FaPhone, FaShippingFast } from 'react-icons/fa';
-import { BsCreditCard2BackFill } from 'react-icons/bs';
+import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaEnvelope, FaMapMarkerAlt, FaPhone} from 'react-icons/fa';
+import { FcAbout } from "react-icons/fc";
+import { MdOutlineProductionQuantityLimits } from "react-icons/md";
 
 const Footer = () => {
   return (
@@ -33,10 +34,9 @@ const Footer = () => {
         <div>
           <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
           <ul className="space-y-2">
-            <li><a href="#" className="flex items-center text-gray-400 hover:text-amber-500 transition-colors duration-300"><FaMapMarkerAlt className="mr-2" /> Store Locator</a></li>
-            <li><a href="#" className="flex items-center text-gray-400 hover:text-amber-500 transition-colors duration-300"><FaShippingFast className="mr-2" /> Track Order</a></li>
-            <li><a href="#" className="flex items-center text-gray-400 hover:text-amber-500 transition-colors duration-300"><BsCreditCard2BackFill className="mr-2" /> Payment Methods</a></li>
-            <li><a href="#" className="flex items-center text-gray-400 hover:text-amber-500 transition-colors duration-300"><FaPhone className="mr-2" /> Contact Us</a></li>
+            <li><a href="/" className="flex items-center text-gray-400 hover:text-amber-500 transition-colors duration-300"><FaMapMarkerAlt className="mr-2" /> Home</a></li>
+            <li><a href="/about" className="flex items-center text-gray-400 hover:text-amber-500 transition-colors duration-300"><FcAbout className="mr-2" /> About</a></li>
+            <li><a href="/contact" className="flex items-center text-gray-400 hover:text-amber-500 transition-colors duration-300"><FaPhone className="mr-2" /> Contact Us</a></li>
           </ul>
         </div>
 

@@ -1,5 +1,45 @@
 import Order from "../Models/OrderModel.js"
 
+export const createOrder = async (req, res) => {
+    console.log("Incoming order data:", JSON.stringify(req.body, null, 2));
+  try {
+    const {
+      orderItems,
+      shippingAddress,
+      paymentMethod,
+      itemsPrice,
+      taxPrice,
+      shippingPrice,
+      totalPrice,
+      user
+    } = req.body;
+
+    if (!orderItems || orderItems.length === 0) {
+      return res.status(400).json({ message: 'No order items' });
+    }
+
+    const order = new Order({
+      user: user || req.user?._id,
+      orderItems,
+      shippingAddress,
+      paymentMethod,
+      itemsPrice,
+      taxPrice,
+      shippingPrice,
+      totalPrice
+    });
+
+    const createdOrder = await order.save();
+    res.status(201).json(createdOrder);
+
+  } catch (error) {
+    console.error('Order creation error:', error);
+    res.status(500).json({
+      message: 'Order creation failed',
+      error: error.message
+    });
+  }
+};
 export const getOrder = async(req, res)=>{
     try{
         const orders = await Order.find({})

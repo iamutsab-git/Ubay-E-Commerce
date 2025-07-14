@@ -21,7 +21,7 @@ const OrderItemSchema = new mongoose.Schema({
   },
   image: {
     type: String,
-    required: true
+    required: false,
   }
 });
 
@@ -50,8 +50,8 @@ const OrderSchema = new mongoose.Schema({
   paymentMethod: {
     type: String,
     required: true,
-    enum: ['PayPal', 'Stripe', 'CashOnDelivery', 'BankTransfer'],
-    default: 'PayPal'
+    enum: ['PayPal', 'Stripe', 'CashOnDelivery', 'eSewa'],
+    default: 'eSewa'
   },
   paymentResult: PaymentResultSchema,
   itemsPrice: {

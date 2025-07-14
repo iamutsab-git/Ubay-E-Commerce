@@ -17,7 +17,7 @@ export const getAllProducts = async () => {
   }
 };
 
-export const getProductDetails = async (id) => {
+export const getProductDetails = async (productId) => {
   try {
     const res = await apiRequest.get(`/product/${productId}`);
     return res.data;

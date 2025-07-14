@@ -24,7 +24,6 @@ const Cart = () => {
     error,
   } = useCart();
 
-  const [isVisible, setIsVisible] = useState(true);
   const navigate = useNavigate();
 
   if (loading) return (
@@ -45,11 +44,12 @@ const Cart = () => {
     </div>
   );
 
-  if (!isVisible) return null;
+
 
   return (
-    <div className="fixed right-4 bottom-4 bg-gradient-to-b from-slate-800 to-slate-900 text-white p-6 rounded-2xl shadow-2xl w-80 z-50 border border-slate-700 transform transition-all duration-300">
-      {/* Header */}
+    <div className="fixed  inset-0 bg-slate-800 ">
+   <div className="fixed left-1/2 top-1/2 w-auto h-auto bg-gradient-to-b from-slate-800 to-slate-900 text-white p-6 rounded-4xl max-w-md shadow-2xl z-50 border border-slate-700 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300">
+  {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-orange-500 bg-clip-text text-transparent">
           Your Cart
@@ -79,6 +79,7 @@ const Cart = () => {
           <div className="mb-6 max-h-72 overflow-y-auto pr-2 -mr-2 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
             {cartItems.map(item => (
               <div key={item.product._id} className="flex justify-between items-center py-4 border-b border-slate-700 last:border-b-0">
+
                 <div className="flex-1">
                   <h3 className="font-semibold text-white mb-2">{item.product.name}</h3>
                   <div className="flex items-center gap-3">
@@ -126,9 +127,10 @@ const Cart = () => {
                 Rs. {cartTotal.toFixed(2)}
               </span>
             </div>
+            <div className="flex justify-end ">
             <button
-              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-3 px-6 rounded-xl font-semibold transform transition-all duration-200 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => alert('Proceeding to checkout...')}
+              className="w-60  bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-3 px-6 rounded-xl font-semibold transform transition-all duration-200 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => navigate("/CheckOut")}
               disabled={loading}
             >
               {loading ? (
@@ -143,9 +145,11 @@ const Cart = () => {
                 </div>
               )}
             </button>
+            </div>
           </div>
         </>
       )}
+    </div>
     </div>
   );
 };
