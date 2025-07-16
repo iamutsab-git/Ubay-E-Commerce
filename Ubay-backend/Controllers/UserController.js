@@ -2,6 +2,8 @@ import User from "../Models/UserModel.js";
 import bcrypt from "bcrypt";
 import { cloudinary } from "../Config/cloudinary.js";
 
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+
 export const getALLUser = async(req, res) => {
     try{
         const users = await User.find();
@@ -103,4 +105,58 @@ export const deleteUser = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
+};
+export const updateUserRole = async (req, res) => {
+  const { id } = req.params;
+  const { isAdmin } = req.body;
+
+  // Validate ObjectId format
+  if (!isValidObjectId(id)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid user ID format',
+    });
+  }
+
+  // Validate isAdmin is boolean
+  if (typeof isAdmin !== 'boolean') {
+    return res.status(400).json({
+      success: false,
+      message: 'isAdmin must be a boolean value (true or false)',
+      receivedValue: isAdmin // Added to help debugging
+    });
+  }
+
+  try {
+    const user = await User.findByIdAndUpdate(
+      id,
+      { isAdmin },
+      { 
+        new: true,
+        runValidators: true,
+        select: 'email username isAdmin createdAt' // Include useful fields
+      }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `User ${user.email} admin status updated to ${isAdmin}`,
+      data: user,
+    });
+
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 };

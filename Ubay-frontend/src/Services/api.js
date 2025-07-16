@@ -18,85 +18,73 @@ export const getAllProducts = async () => {
 };
 
 export const getProductDetails = async (productId) => {
+  if (!productId) {
+    throw new Error('Product ID is required');
+  }
   try {
     const res = await apiRequest.get(`/product/${productId}`);
-    return res.data;
+    return res.data.data;
   } catch (error) {
     console.error('Error fetching product details:', error);
     throw error;
   }
 };
-export const  getPopularProducts = async () => {
-    try {
-      const res = await apiRequest.get('/product/popular');
-      return res.data;
-    } catch (error) {
-      throw new Error(error.res?.data?.message || 'Failed to fetch popular products');
-    }
-    
+
+export const getPopularProducts = async () => {
+  try {
+    const res = await apiRequest.get('/product/popular');
+    return res.data.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to fetch popular products');
+  }
 };
 
- export const searchProducts =async (query) => {
-    try {
-      const res = await apiRequest.get('/product/search', { 
-        params: { q: query } 
-      });
-      return res.data;
-    } catch (error) {
-      throw new Error(error.res?.data?.message || 'Search failed');
-    }
+export const searchProducts = async (query) => {
+  try {
+    const res = await apiRequest.get('/product/search', {
+      params: { q: query },
+    });
+    return res.data.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Search failed');
+  }
 };
 
- // Create product (admin only)
-  export const createProduct= async (productData) => {
-    try {
-      const res = await apiRequest.post('/product', productData);
-      return res.data;
-    } catch (error) {
-      throw new Error(error.res?.data?.message || 'Product creation failed');
-    }
-  };
+export const createProduct = async (productData) => {
+  try {
+    const res = await apiRequest.post('/product/addproduct', productData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Product creation failed');
+  }
+};
 
-  // Update product (admin only)
-  export const updateProduct= async (id, productData) => {
-    try {
-      const res = await apiRequest.put(`/product/${id}`, productData);
-      return res.data;
-    } catch (error) {
-      throw new Error(error.res?.data?.message || 'Product update failed');
-    }
-  };
+export const updateProduct = async (id, productData) => {
+  try {
+    const res = await apiRequest.put(`/product/${id}`, productData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Product update failed');
+  }
+};
 
-  // Delete product (admin only)
-  export const deleteProduct =async (id) => {
-    try {
-      const res = await apiRequest.delete(`/product/${id}`);
-      return res.data;
-    } catch (error) {
-      throw new Error(error.res?.data?.message || 'Product deletion failed');
-    }
-  };
+export const deleteProduct = async (id) => {
+  try {
+    const res = await apiRequest.delete(`/product/${id}`);
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Product deletion failed');
+  }
+};
 
-  // Upload product image
-  export const uploadProductImage = async (productId, imageFile) => {
-    const formData = new FormData();
-    formData.append('image', imageFile);
-    
-    try {
-      const res = await apiRequest.post(
-        `/product/${productId}/images`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
-      return res.data;
-    } catch (error) {
-      throw new Error(error.res?.data?.message || 'Image upload failed');
-    }
-  };
 
   // Order API functions
 export const getAllOrders = async () => {
@@ -117,15 +105,23 @@ export const getOrderById = async (id) => {
   }
 };
 
-export const updateOrderStatus = async (id, status) => {
+export const updateOrderStatus = async (orderId, statusData) => {
   try {
-    const res = await apiRequest.put(`/order/${id}/status`, { status });
+    const res = await apiRequest.put(
+      `/order/${orderId}/status`, 
+      { status: statusData }, // Wrap status in an object
+      { 
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
     return res.data;
   } catch (error) {
     throw new Error(error.response?.data?.message || 'Failed to update order status');
   }
 };
-
 export const updateOrderToDelivered = async (id) => {
   try {
     const res = await apiRequest.put(`/order/${id}/deliver`);
@@ -162,7 +158,23 @@ export const getUserById = async (id) => {
     throw new Error(error.response?.data?.message || 'Failed to fetch user');
   }
 };
-
+export const updateUserRole = async (userId, isAdmin) => {
+  try {
+    const res = await apiRequest.put(
+      `/user/${userId}/role`,
+      isAdmin ,  // Send as object with isAdmin property
+      { 
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to update user role');
+  }
+};
 export const updateUserProfile = async (id, userData) => {
   try {
     const formData = new FormData();

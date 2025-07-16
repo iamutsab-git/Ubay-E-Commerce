@@ -2,7 +2,7 @@ import Cart from "../Models/CartModel.js";
 import Product from "../Models/ProductModel.js";
 import mongoose from "mongoose";
 
-// Helper to get or create cart
+// Helper to get or create cart with safe population
 const getCurrentCart = async (req) => {
   try {
     let cart;
@@ -10,13 +10,17 @@ const getCurrentCart = async (req) => {
     if (req.user) {
       // For authenticated users
       cart = await Cart.findOne({ user: req.user._id })
-        .populate('items.product', 'name price');
+        .populate({
+          path: 'items.product',
+          select: 'name price',
+          model: 'Product'
+        });
       
       if (!cart) {
         cart = await Cart.create({ user: req.user._id, items: [] });
       }
     } else {
-      // For guest users - ensure session exists
+      // For guest users
       if (!req.session) {
         throw new Error("Session middleware not configured");
       }
@@ -26,13 +30,27 @@ const getCurrentCart = async (req) => {
         req.session.cartId = cart._id;
       } else {
         cart = await Cart.findById(req.session.cartId)
-          .populate('items.product', 'name price');
+          .populate({
+            path: 'items.product',
+            select: 'name price',
+            model: 'Product'
+          });
         
         if (!cart) {
           cart = await Cart.create({ items: [] });
           req.session.cartId = cart._id;
         }
       }
+    }
+    
+    // Clean any invalid items before returning
+    if (cart) {
+      cart.items = cart.items.filter(item => 
+        item.product && 
+        item.product._id && 
+        typeof item.product.price === 'number'
+      );
+      await cart.save();
     }
     
     return cart;
@@ -42,30 +60,43 @@ const getCurrentCart = async (req) => {
   }
 };
 
-// Calculate cart metrics
+// Safe calculation of cart metrics
 const calculateCartMetrics = (cart) => {
-  const subtotal = cart.items.reduce((sum, item) => 
-    sum + (item.product?.price || 0) * item.quantity, 0);
+  // Filter out any invalid items first
+  const validItems = cart.items.filter(item => 
+    item && 
+    item.product && 
+    typeof item.product.price === 'number' &&
+    typeof item.quantity === 'number' &&
+    item.quantity > 0
+  );
+
+  const subtotal = validItems.reduce((sum, item) => 
+    sum + (item.product.price * item.quantity), 0);
   
   const shipping = subtotal > 50 ? 0 : 5.99;
   const tax = subtotal * 0.1;
   const total = subtotal + tax + shipping;
   
   return {
-    subtotal,
-    shipping,
-    tax,
-    total,
-    cartCount: cart.items.reduce((sum, item) => sum + item.quantity, 0),
-    items: cart.items.map(item => ({
-      ...item.toObject(),
-      price: item.product.price,
-      
+    subtotal: parseFloat(subtotal.toFixed(2)),
+    shipping: parseFloat(shipping.toFixed(2)),
+    tax: parseFloat(tax.toFixed(2)),
+    total: parseFloat(total.toFixed(2)),
+    cartCount: validItems.reduce((sum, item) => sum + item.quantity, 0),
+    items: validItems.map(item => ({
+      _id: item._id,
+      product: {
+        _id: item.product._id,
+        name: item.product.name,
+        price: item.product.price
+      },
+      quantity: item.quantity
     }))
   };
 };
 
-// Add to cart
+// Add to cart with additional validation
 export const addToCart = async (req, res) => {
   try {
     const { productId, quantity = 1 } = req.body;
@@ -74,28 +105,38 @@ export const addToCart = async (req, res) => {
       return res.status(400).json({ error: "Invalid product ID" });
     }
     
-    if (quantity < 1) {
+    const parsedQuantity = parseInt(quantity);
+    if (isNaN(parsedQuantity) || parsedQuantity < 1) {
       return res.status(400).json({ error: "Quantity must be at least 1" });
     }
 
     const product = await Product.findById(productId);
-    if (!product) {
-      return res.status(404).json({ error: "Product not found" });
+    if (!product || typeof product.price !== 'number') {
+      return res.status(404).json({ error: "Valid product not found" });
     }
     
     const cart = await getCurrentCart(req);
     const existingItem = cart.items.find(item => 
+      item.product && 
       item.product._id.toString() === productId
     );
     
     if (existingItem) {
-      existingItem.quantity += Number(quantity);
+      existingItem.quantity += parsedQuantity;
     } else {
-      cart.items.push({ product: productId, quantity: Number(quantity) });
+      cart.items.push({ 
+        product: productId, 
+        quantity: parsedQuantity 
+      });
     }
     
     await cart.save();
-    const updatedCart = await getCurrentCart(req);
+    const updatedCart = await Cart.findById(cart._id)
+      .populate({
+        path: 'items.product',
+        select: 'name price',
+        model: 'Product'
+      });
     
     res.json({
       success: true,
@@ -111,7 +152,7 @@ export const addToCart = async (req, res) => {
   }
 };
 
-// Get cart
+// Get cart with additional safety checks
 export const getCart = async (req, res) => {
   try {
     const cart = await getCurrentCart(req);
@@ -120,9 +161,17 @@ export const getCart = async (req, res) => {
       return res.status(404).json({ error: "Cart not found" });
     }
     
+    // Double-check population
+    const populatedCart = await Cart.findById(cart._id)
+      .populate({
+        path: 'items.product',
+        select: 'name price',
+        model: 'Product'
+      });
+    
     res.json({
       success: true,
-      ...calculateCartMetrics(cart)
+      ...calculateCartMetrics(populatedCart)
     });
     
   } catch (error) {
@@ -134,7 +183,7 @@ export const getCart = async (req, res) => {
   }
 };
 
-// Remove from cart
+// Remove from cart with validation
 export const removeFromCart = async (req, res) => {
   try {
     const { productId, removeAll = false } = req.body;
@@ -145,7 +194,7 @@ export const removeFromCart = async (req, res) => {
     
     const cart = await getCurrentCart(req);
     const itemIndex = cart.items.findIndex(
-      item => item.product._id.toString() === productId
+      item => item.product && item.product._id.toString() === productId
     );
     
     if (itemIndex === -1) {
@@ -159,7 +208,12 @@ export const removeFromCart = async (req, res) => {
     }
     
     await cart.save();
-    const updatedCart = await getCurrentCart(req);
+    const updatedCart = await Cart.findById(cart._id)
+      .populate({
+        path: 'items.product',
+        select: 'name price',
+        model: 'Product'
+      });
     
     res.json({
       success: true,

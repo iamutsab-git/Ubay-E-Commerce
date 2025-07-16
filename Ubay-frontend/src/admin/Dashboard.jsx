@@ -1,927 +1,992 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Users, Package, ShoppingCart, Plus, Edit, Trash2, Search, Eye, 
-  ChevronDown, ChevronUp, Upload, Download 
-} from 'lucide-react';
-
-// Import your API functions
+import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import {
-  // Products
-  getAllProducts, createProduct, updateProduct, deleteProduct, uploadProductImage,
-  // Orders
-  getAllOrders, getOrderById, updateOrderStatus, updateOrderToDelivered, deleteOrder,
-  // Users
-  getAllUsers, getUserById, updateUserProfile, deleteUser, updateUserAsAdmin, createUserAsAdmin
-} from '../Services/api';
+  getAllUsers,
+  updateUserRole,
+  deleteUser,
+  getAllProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  getProductDetails,
+  getPopularProducts,
+  getAllOrders,
+  updateOrderStatus,
+  deleteOrder,
+} from "../Services/api";
 
 const Dashboard = () => {
-  // State management
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  
-  // Data states
+  const [stats, setStats] = useState({ users: 0, products: 0, orders: 0 });
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [popularProducts, setPopularProducts] = useState([]);
   const [users, setUsers] = useState([]);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalProducts: 0,
-    totalOrders: 0,
-    revenue: 0
+  const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState({});
+  const [activeSection, setActiveSection] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [page, setPage] = useState({ users: 1, products: 1, orders: 1 });
+  const [totalPages, setTotalPages] = useState({
+    users: 1,
+    products: 1,
+    orders: 1,
   });
+  const limit = 10;
 
-  // Modal states
-  const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState('');
-  const [editingItem, setEditingItem] = useState(null);
-  const [formData, setFormData] = useState({});
+  // Product form state
+  const [productForm, setProductForm] = useState({
+    name: "",
+    price: "",
+    description: "",
+    stock: "",
+    brand: "",
+    category: "",
+  });
+  const [images, setImages] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [editingProductId, setEditingProductId] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
-  // Fetch all data on component mount
+  // Order form state
+  const [orderForm, setOrderForm] = useState({ status: "" });
+  const [editingOrderId, setEditingOrderId] = useState(null);
+
+  // User form state
+  const [userForm, setUserForm] = useState({ isAdmin: false });
+  const [editingUserId, setEditingUserId] = useState(null);
+
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const [usersData, productsData, ordersData] = await Promise.all([
-          getAllUsers(),
-          getAllProducts(),
-          getAllOrders()
-        ]);
-        
-        setUsers(usersData);
-        setProducts(productsData);
-        setOrders(ordersData);
-        
-        // Calculate stats
-        setStats({
-          totalUsers: usersData.length,
-          totalProducts: productsData.length,
-          totalOrders: ordersData.length,
-          revenue: ordersData.reduce((sum, order) => sum + (order.totalPrice || 0), 0)
-        });
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchData();
+    fetchSummary();
   }, []);
 
-  // Tab-specific data fetching
   useEffect(() => {
-    if (activeTab === 'products') {
-      fetchProducts();
-    } else if (activeTab === 'orders') {
-      fetchOrders();
-    } else if (activeTab === 'users') {
-      fetchUsers();
-    }
-  }, [activeTab]);
+    if (activeSection === "orders") fetchOrders(page.orders);
+    else if (activeSection === "products") fetchProducts(page.products);
+    else if (activeSection === "users") fetchUsers(page.users);
+  }, [page, activeSection]);
 
-  const fetchProducts = async () => {
+  const fetchSummary = async () => {
     try {
-      setIsLoading(true);
-      const data = await getAllProducts();
-      setProducts(data);
-    } catch (err) {
-      setError(err.message);
+      setLoading(true);
+      const [usersRes, ordersRes, productsRes, popularRes] = await Promise.all([
+        getAllUsers({ page: 1, limit: 5 }),
+        getAllOrders({ page: 1, limit: 5 }),
+        getAllProducts({ page: 1, limit: 5 }),
+        getPopularProducts(),
+      ]);
+      setStats({
+        users: usersRes.total || usersRes.length,
+        orders: ordersRes.total || ordersRes.length,
+        products: productsRes.total || productsRes.length,
+      });
+      setRecentOrders(ordersRes.data || ordersRes);
+      setPopularProducts(popularRes);
+      setUsers(usersRes.data || usersRes);
+      setProducts(productsRes.data || productsRes);
+      setOrders(ordersRes.data || ordersRes);
+      setTotalPages({
+        users: Math.ceil(usersRes.total / limit) || 1,
+        products: Math.ceil(productsRes.total / limit) || 1,
+        orders: Math.ceil(ordersRes.total / limit) || 1,
+      });
+    } catch (error) {
+      toast.error("Error fetching dashboard data");
+      console.error("Error fetching summary:", error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const fetchOrders = async () => {
+  const fetchUsers = async (pageNum) => {
     try {
-      setIsLoading(true);
-      const data = await getAllOrders();
-      setOrders(data);
-    } catch (err) {
-      setError(err.message);
+      setLoading(true);
+      const res = await getAllUsers({ page: pageNum, limit });
+      setUsers(res.data || res);
+      setTotalPages((prev) => ({
+        ...prev,
+        users: Math.ceil(res.total / limit) || 1,
+      }));
+    } catch (error) {
+      toast.error(error.message || "Error fetching users");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const fetchUsers = async () => {
+  const fetchProducts = async (pageNum) => {
     try {
-      setIsLoading(true);
-      const data = await getAllUsers();
-      setUsers(data);
-    } catch (err) {
-      setError(err.message);
+      setLoading(true);
+      const res = await getAllProducts({ page: pageNum, limit });
+      setProducts(res.data || res);
+      setTotalPages((prev) => ({
+        ...prev,
+        products: Math.ceil(res.total / limit) || 1,
+      }));
+    } catch (error) {
+      toast.error(error.message || "Error fetching products");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  // CRUD Operations
-  const handleAdd = (type) => {
-    setModalType(`add-${type}`);
-    setEditingItem(null);
-    setFormData({});
-    setShowModal(true);
-  };
-
-  const handleEdit = (type, item) => {
-    setModalType(`edit-${type}`);
-    setEditingItem(item);
-    setFormData(item);
-    setShowModal(true);
-  };
-
-  const handleDelete = async (type, id) => {
-    if (window.confirm(`Are you sure you want to delete this ${type}?`)) {
-      try {
-        setIsLoading(true);
-        if (type === 'products') {
-          await deleteProduct(id);
-          setProducts(products.filter(p => p._id !== id));
-        } else if (type === 'orders') {
-          await deleteOrder(id);
-          setOrders(orders.filter(o => o._id !== id));
-        } else if (type === 'users') {
-          await deleteUser(id);
-          setUsers(users.filter(u => u._id !== id));
-        }
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
+  const fetchOrders = async (pageNum) => {
+    try {
+      setLoading(true);
+      const res = await getAllOrders({ page: pageNum, limit });
+      setOrders(res.data || res);
+      setTotalPages((prev) => ({
+        ...prev,
+        orders: Math.ceil(res.total / limit) || 1,
+      }));
+    } catch (error) {
+      toast.error(error.message || "Error fetching orders");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handlePageChange = (section, newPage) => {
+    if (newPage >= 1 && newPage <= totalPages[section]) {
+      setPage((prev) => ({ ...prev, [section]: newPage }));
+    }
+  };
+
+  // Product Handlers
+  const handleProductSubmit = async (e) => {
     e.preventDefault();
-    
     try {
-      setIsLoading(true);
-      if (modalType.includes('product')) {
-        if (editingItem) {
-          const updatedProduct = await updateProduct(editingItem._id, formData);
-          setProducts(products.map(p => p._id === editingItem._id ? updatedProduct : p));
-        } else {
-          const newProduct = await createProduct(formData);
-          setProducts([...products, newProduct]);
-        }
-      } else if (modalType.includes('order-status')) {
-        const updatedOrder = await updateOrderStatus(editingItem._id, formData.status);
-        setOrders(orders.map(o => o._id === editingItem._id ? updatedOrder : o));
-      } else if (modalType.includes('user')) {
-        if (editingItem) {
-          const updatedUser = await updateUserAsAdmin(editingItem._id, formData);
-          setUsers(users.map(u => u._id === editingItem._id ? updatedUser : u));
-        } else {
-          const newUser = await createUserAsAdmin(formData);
-          setUsers([...users, newUser]);
-        }
+      setLoading(true);
+      const formData = new FormData();
+      formData.append("name", productForm.name);
+      formData.append("price", productForm.price);
+      formData.append("stock", productForm.stock);
+      if (productForm.description)
+        formData.append("description", productForm.description);
+      if (productForm.brand) formData.append("brand", productForm.brand);
+      if (productForm.category)
+        formData.append("category", productForm.category);
+      images.forEach((image) => formData.append("images", image));
+
+      let product;
+      if (editingProductId) {
+        product = await updateProduct(editingProductId, formData);
+        toast.success("Product updated successfully");
+      } else {
+        product = await createProduct(formData);
+        toast.success("Product created successfully");
       }
-      
-      setShowModal(false);
-      setFormData({});
-    } catch (err) {
-      setError(err.message);
+
+      setProductForm({
+        name: "",
+        price: "",
+        description: "",
+        stock: "",
+        brand: "",
+        category: "",
+      });
+      setImages([]);
+      setImagePreviews([]);
+      setEditingProductId(null);
+      fetchProducts(page.products);
+    } catch (error) {
+      toast.error(error.message || "Error saving product");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  // UI Components
-  const StatCard = ({ title, value, icon: Icon, color, trend }) => (
-    <div className="bg-white rounded-lg shadow p-6 border-l-4" style={{ borderLeftColor: color }}>
-      <div className="flex justify-between">
-        <div>
-          <p className="text-gray-500 text-sm">{title}</p>
-          <p className="text-2xl font-bold">{value}</p>
-        </div>
-        <div className="flex flex-col items-end">
-          <Icon className="w-8 h-8" style={{ color }} />
-          {trend && (
-            <span className={`flex items-center mt-2 text-sm ${trend > 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {trend > 0 ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              {Math.abs(trend)}%
-            </span>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderModal = () => {
-    if (!showModal) return null;
-
-    const isProduct = modalType.includes('product');
-    const isOrderStatus = modalType.includes('order-status');
-    const isUser = modalType.includes('user');
-    const isEditing = modalType.includes('edit');
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md">
-          <h3 className="text-lg font-semibold mb-4">
-            {isEditing ? 'Edit' : 'Add'} {isProduct ? 'Product' : isOrderStatus ? 'Order Status' : 'User'}
-          </h3>
-          
-          {isProduct && (
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Name</label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border rounded"
-                    value={formData.name || ''}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Description</label>
-                  <textarea
-                    className="w-full p-2 border rounded"
-                    value={formData.description || ''}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Price</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="w-full p-2 border rounded"
-                      value={formData.price || ''}
-                      onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value)})}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Stock</label>
-                    <input
-                      type="number"
-                      className="w-full p-2 border rounded"
-                      value={formData.stock || ''}
-                      onChange={(e) => setFormData({...formData, stock: parseInt(e.target.value)})}
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Category</label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border rounded"
-                    value={formData.category || ''}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Image</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setFormData({...formData, imageFile: e.target.files[0]})}
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end space-x-2 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  {isEditing ? 'Update' : 'Add'}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {isOrderStatus && (
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Status</label>
-                  <select
-                    className="w-full p-2 border rounded"
-                    value={formData.status || ''}
-                    onChange={(e) => setFormData({...formData, status: e.target.value})}
-                    required
-                  >
-                    <option value="Pending">Pending</option>
-                    <option value="Processing">Processing</option>
-                    <option value="Shipped">Shipped</option>
-                    <option value="Delivered">Delivered</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex justify-end space-x-2 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Update Status
-                </button>
-              </div>
-            </form>
-          )}
-
-          {isUser && (
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Username</label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border rounded"
-                    value={formData.username || ''}
-                    onChange={(e) => setFormData({...formData, username: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Email</label>
-                  <input
-                    type="email"
-                    className="w-full p-2 border rounded"
-                    value={formData.email || ''}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    required
-                  />
-                </div>
-                {!isEditing && (
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Password</label>
-                    <input
-                      type="password"
-                      className="w-full p-2 border rounded"
-                      value={formData.password || ''}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      required={!isEditing}
-                    />
-                  </div>
-                )}
-                <div>
-                  <label className="block text-sm font-medium mb-1">Role</label>
-                  <select
-                    className="w-full p-2 border rounded"
-                    value={formData.role || 'user'}
-                    onChange={(e) => setFormData({...formData, role: e.target.value})}
-                  >
-                    <option value="user">User</option>
-                    <option value="admin">Admin</option>
-                    <option value="moderator">Moderator</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Avatar</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setFormData({...formData, avatarFile: e.target.files[0]})}
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end space-x-2 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  {isEditing ? 'Update' : 'Add'}
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
-      </div>
-    );
+  const handleProductEdit = (product) => {
+    setProductForm({
+      name: product.name,
+      price: product.price,
+      description: product.description || "",
+      stock: product.stock || "",
+      brand: product.brand || "",
+      category: product.category || "",
+    });
+    setEditingProductId(product._id);
+    setImages([]);
+    setImagePreviews(product.images?.map((img) => img.url) || []);
   };
 
-  // Dashboard Views
-  const renderDashboard = () => (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">Dashboard Overview</h2>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <StatCard 
-          title="Total Users" 
-          value={stats.totalUsers} 
-          icon={Users} 
-          color="#3B82F6" 
-          trend={5.2} 
-        />
-        <StatCard 
-          title="Total Products" 
-          value={stats.totalProducts} 
-          icon={Package} 
-          color="#10B981" 
-          trend={12.7} 
-        />
-        <StatCard 
-          title="Total Orders" 
-          value={stats.totalOrders} 
-          icon={ShoppingCart} 
-          color="#F59E0B" 
-          trend={8.4} 
-        />
-        <StatCard 
-          title="Total Revenue" 
-          value={`$${stats.revenue.toFixed(2)}`} 
-          icon={ShoppingCart} 
-          color="#8B5CF6" 
-          trend={15.3} 
-        />
-      </div>
+  const handleProductDelete = async (id) => {
+    try {
+      setActionLoading((prev) => ({ ...prev, [id]: true }));
+      await deleteProduct(id);
+      toast.success("Product deleted successfully");
+      fetchProducts(page.products);
+    } catch (error) {
+      toast.error(error.message || "Error deleting product");
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [id]: false }));
+    }
+  };
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold">Recent Orders</h3>
-            <button className="text-sm text-blue-600">View All</button>
-          </div>
-          <div className="space-y-4">
-            {orders.slice(0, 5).map(order => (
-              <div key={order._id} className="flex justify-between items-center p-3 border-b">
-                <div>
-                  <p className="font-medium">#{order._id.substring(0, 8)}</p>
-                  <p className="text-sm text-gray-500">{order.user?.name || 'Guest'}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium">${order.totalPrice?.toFixed(2)}</p>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
-                    order.status === 'Shipped' ? 'bg-blue-100 text-blue-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {order.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length + images.length > 4) {
+      toast.error("Maximum 4 images allowed");
+      return;
+    }
+    setImages([...images, ...files]);
+    const previews = files.map((file) => URL.createObjectURL(file));
+    setImagePreviews([...imagePreviews, ...previews]);
+  };
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold">Popular Products</h3>
-            <button className="text-sm text-blue-600">View All</button>
-          </div>
-          <div className="space-y-4">
-            {products.slice(0, 5).map(product => (
-              <div key={product._id} className="flex items-center p-3 border-b">
-                <div className="w-10 h-10 bg-gray-200 rounded mr-3 overflow-hidden">
-                  {product.image && (
-                    <img 
-                      src={product.image} 
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium">{product.name}</p>
-                  <p className="text-sm text-gray-500">{product.category}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium">${product.price?.toFixed(2)}</p>
-                  <p className="text-xs text-gray-500">{product.stock} in stock</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  const removeImage = (index) => {
+    setImages(images.filter((_, i) => i !== index));
+    setImagePreviews(imagePreviews.filter((_, i) => i !== index));
+  };
 
-  const renderProducts = () => (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Products Management</h2>
-        <div className="flex space-x-3">
-          <button 
-            className="flex items-center px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-            onClick={() => {}} // Add export functionality
-          >
-            <Download size={16} className="mr-2" />
-            Export
-          </button>
-          <button 
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            onClick={() => handleAdd('products')}
-          >
-            <Plus size={16} className="mr-2" />
-            Add Product
-          </button>
-        </div>
-      </div>
+  const fetchProductDetails = async (productId) => {
+    if (!productId) return;
+    try {
+      setLoading(true);
+      const data = await getProductDetails(productId);
+      setSelectedProduct(data);
+    } catch (error) {
+      toast.error(error.message || "Error fetching product details");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-4 border-b">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Search products..."
-              className="w-full pl-10 pr-4 py-2 border rounded-lg"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
+  // Order Handlers
+  const handleOrderSubmit = async (e, orderId) => {
+    e.preventDefault();
+    if (!orderId) return;
+    try {
+      setActionLoading((prev) => ({ ...prev, [orderId]: true }));
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="p-4">Product</th>
-                <th className="p-4">Category</th>
-                <th className="p-4">Price</th>
-                <th className="p-4">Stock</th>
-                <th className="p-4">Status</th>
-                <th className="p-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products
-                .filter(product => 
-                  product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  product.category.toLowerCase().includes(searchTerm.toLowerCase()))
-                .map(product => (
-                  <tr key={product._id} className="border-b hover:bg-gray-50">
-                    <td className="p-4">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gray-200 rounded mr-3 overflow-hidden">
-                          {product.image && (
-                            <img 
-                              src={product.image} 
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                            />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-sm text-gray-500">{product.description?.substring(0, 30)}...</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">{product.category}</td>
-                    <td className="p-4">${product.price?.toFixed(2)}</td>
-                    <td className="p-4">
-                      <span className={`${product.stock < 10 ? 'text-red-600 font-medium' : ''}`}>
-                        {product.stock}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        product.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {product.status || 'active'}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleEdit('products', product)}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          <Edit size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete('products', product._id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+      // Ensure status is properly formatted
+      const formattedStatus =
+        orderForm.status.charAt(0).toUpperCase() +
+        orderForm.status.slice(1).toLowerCase();
 
-  const renderOrders = () => (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Orders Management</h2>
-        <div className="flex space-x-3">
-          <button 
-            className="flex items-center px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-            onClick={() => {}} // Add export functionality
-          >
-            <Download size={16} className="mr-2" />
-            Export
-          </button>
-        </div>
-      </div>
+      await updateOrderStatus(orderId, formattedStatus);
 
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-4 border-b">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Search orders..."
-              className="w-full pl-10 pr-4 py-2 border rounded-lg"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
+      toast.success("Order status updated successfully");
+      setOrderForm({ status: "" });
+      setEditingOrderId(null);
+      fetchOrders(page.orders);
+    } catch (error) {
+      toast.error(error.message || "Error updating order status");
+      console.error("Update error:", error.response?.data || error.message);
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [orderId]: false }));
+    }
+  };
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="p-4">Order ID</th>
-                <th className="p-4">Customer</th>
-                <th className="p-4">Total</th>
-                <th className="p-4">Status</th>
-                <th className="p-4">Date</th>
-                <th className="p-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders
-                .filter(order => 
-                  order._id.includes(searchTerm) ||
-                  (order.user?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  order.status.toLowerCase().includes(searchTerm.toLowerCase()))
-                .map(order => (
-                  <tr key={order._id} className="border-b hover:bg-gray-50">
-                    <td className="p-4">#{order._id.substring(0, 8)}</td>
-                    <td className="p-4">{order.user?.name || 'Guest'}</td>
-                    <td className="p-4">${order.totalPrice?.toFixed(2)}</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
-                        order.status === 'Shipped' ? 'bg-blue-100 text-blue-800' :
-                        order.status === 'Processing' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="p-4">{new Date(order.createdAt).toLocaleDateString()}</td>
-                    <td className="p-4">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => {
-                            setModalType('edit-order-status');
-                            setEditingItem(order);
-                            setFormData({ status: order.status });
-                            setShowModal(true);
-                          }}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          <Edit size={18} />
-                        </button>
-                        {order.status !== 'Delivered' && (
-                          <button
-                            onClick={async () => {
-                              if (window.confirm('Mark this order as delivered?')) {
-                                try {
-                                  setIsLoading(true);
-                                  const updatedOrder = await updateOrderToDelivered(order._id);
-                                  setOrders(orders.map(o => o._id === order._id ? updatedOrder : o));
-                                } catch (err) {
-                                  setError(err.message);
-                                } finally {
-                                  setIsLoading(false);
-                                }
-                              }
-                            }}
-                            className="text-green-600 hover:text-green-800"
-                          >
-                            <ShoppingCart size={18} />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDelete('orders', order._id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+  const handleOrderEdit = (order) => {
+    setOrderForm({ status: order.status || "pending" });
+    setEditingOrderId(order._id);
+  };
 
-  const renderUsers = () => (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Users Management</h2>
-        <div className="flex space-x-3">
-          <button 
-            className="flex items-center px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-            onClick={() => {}} // Add export functionality
-          >
-            <Download size={16} className="mr-2" />
-            Export
-          </button>
-          <button 
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            onClick={() => handleAdd('users')}
-          >
-            <Plus size={16} className="mr-2" />
-            Add User
-          </button>
-        </div>
-      </div>
+  const handleOrderDelete = async (id) => {
+    try {
+      setActionLoading((prev) => ({ ...prev, [id]: true }));
+      await deleteOrder(id);
+      toast.success("Order deleted successfully");
+      fetchOrders(page.orders);
+    } catch (error) {
+      toast.error(error.message || "Error deleting order");
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [id]: false }));
+    }
+  };
 
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-4 border-b">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Search users..."
-              className="w-full pl-10 pr-4 py-2 border rounded-lg"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
+  // User Handlers
+  const handleUserSubmit = async (e, userId) => {
+    e.preventDefault();
+    try {
+      setActionLoading((prev) => ({ ...prev, [userId]: true }));
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="p-4">User</th>
-                <th className="p-4">Email</th>
-                <th className="p-4">Role</th>
-                <th className="p-4">Status</th>
-                <th className="p-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users
-                .filter(user => 
-                  user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  user.role.toLowerCase().includes(searchTerm.toLowerCase()))
-                .map(user => (
-                  <tr key={user._id} className="border-b hover:bg-gray-50">
-                    <td className="p-4">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-full bg-gray-200 mr-3 overflow-hidden">
-                          {user.avatar?.url ? (
-                            <img 
-                              src={user.avatar.url} 
-                              alt={user.username}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-500">
-                              {user.username.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium">{user.username}</p>
-                          <p className="text-sm text-gray-500">Joined {new Date(user.createdAt).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">{user.email}</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
-                        user.role === 'moderator' ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {user.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleEdit('users', user)}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          <Edit size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete('users', user._id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+      const response = await updateUserRole(
+        userId,
+        userForm.isAdmin === "true" // Convert to boolean
+      );
+
+      toast.success(response.message || "User role updated successfully");
+      fetchUsers(page.users);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [userId]: false }));
+      setEditingUserId(null);
+    }
+  };
+  const handleUserEdit = (user) => {
+    setUserForm({ isAdmin: user.isAdmin ? "true" : "false" });
+    setEditingUserId(user._id);
+  };
+
+  const handleUserDelete = async (id) => {
+    try {
+      setActionLoading((prev) => ({ ...prev, [id]: true }));
+      await deleteUser(id);
+      toast.success("User deleted successfully");
+      fetchUsers(page.users);
+    } catch (error) {
+      toast.error(error.message || "Error deleting user");
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const filteredData = (data, type) => {
+    return data.filter((item) => {
+      if (type === "orders") {
+        const matchesSearch =
+          searchQuery === "" ||
+          item._id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (item.customer &&
+            item.customer.toLowerCase().includes(searchQuery.toLowerCase()));
+        const matchesStatus =
+          statusFilter === "" || item.status === statusFilter;
+        return matchesSearch && matchesStatus;
+      }
+      if (type === "products") {
+        return (
+          searchQuery === "" ||
+          item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (item.description &&
+            item.description.toLowerCase().includes(searchQuery.toLowerCase()))
+        );
+      }
+      if (type === "users") {
+        return (
+          searchQuery === "" ||
+          item.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (item.username &&
+            item.username.toLowerCase().includes(searchQuery.toLowerCase()))
+        );
+      }
+      return true;
+    });
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Loading overlay */}
-      {isLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <p>Loading...</p>
-          </div>
+    <div className="container mx-auto p-6">
+      <h2 className="text-2xl font-bold mb-6 text-gray-800">Admin Dashboard</h2>
+      {loading && !activeSection ? (
+        <div className="col-span-3 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
         </div>
-      )}
-      
-      {/* Error notification */}
-      {error && (
-        <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50">
-          <span className="block sm:inline">{error}</span>
-          <button 
-            onClick={() => setError(null)} 
-            className="absolute top-0 right-0 px-2 py-1"
-          >
-            <span className="text-red-700">×</span>
-          </button>
-        </div>
-      )}
-      
-      {/* Sidebar */}
-      <div className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg">
-        <div className="p-6">
-          <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
-        </div>
-        <nav className="mt-6">
-          {[
-            { id: 'dashboard', label: 'Dashboard', icon: Eye },
-            { id: 'users', label: 'Users', icon: Users },
-            { id: 'products', label: 'Products', icon: Package },
-            { id: 'orders', label: 'Orders', icon: ShoppingCart }
-          ].map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`w-full flex items-center px-6 py-3 text-left hover:bg-blue-50 ${
-                activeTab === id ? 'bg-blue-100 text-blue-600 border-r-2 border-blue-600' : 'text-gray-700'
-              }`}
-            >
-              <Icon className="w-5 h-5 mr-3" />
-              {label}
-            </button>
-          ))}
-        </nav>
-      </div>
+      ) : (
+        <>
+          {!activeSection ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div
+                className="bg-white p-6 rounded-lg shadow hover:shadow-xl transition transform hover:-translate-y-1 cursor-pointer"
+                onClick={() => setActiveSection("users")}
+              >
+                <h2 className="text-xl font-semibold text-gray-800">Users</h2>
+                <p className="text-3xl text-blue-600">{stats.users}</p>
+                <p className="text-gray-600 mt-2">Recent Users:</p>
+                {users.slice(0, 3).map((user) => (
+                  <p key={user._id} className="text-sm text-gray-500">
+                    {user.email}
+                  </p>
+                ))}
+              </div>
+              <div
+                className="bg-white p-6 rounded-lg shadow hover:shadow-xl transition transform hover:-translate-y-1 cursor-pointer"
+                onClick={() => setActiveSection("products")}
+              >
+                <h2 className="text-xl font-semibold text-gray-800">
+                  Products
+                </h2>
+                <p className="text-3xl text-blue-600">{stats.products}</p>
+                <p className="text-gray-600 mt-2">Popular Products:</p>
+                {popularProducts.slice(0, 3).map((product) => (
+                  <p key={product._id} className="text-sm text-gray-500">
+                    {product.name}
+                  </p>
+                ))}
+              </div>
+              <div
+                className="bg-white p-6 rounded-lg shadow hover:shadow-xl transition transform hover:-translate-y-1 cursor-pointer"
+                onClick={() => setActiveSection("orders")}
+              >
+                <h2 className="text-xl font-semibold text-gray-800">Orders</h2>
+                <p className="text-3xl text-blue-600">{stats.orders}</p>
+                <p className="text-gray-600 mt-2">Recent Orders:</p>
+                {recentOrders.slice(0, 3).map((order) => (
+                  <p key={order._id} className="text-sm text-gray-500">
+                    Order #{order._id}
+                  </p>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <button
+                onClick={() => setActiveSection(null)}
+                className="mb-4 bg-gray-500 text-white p-2 rounded hover:bg-gray-600"
+              >
+                Back to Summary
+              </button>
+              <div className="mb-6 flex flex-col md:flex-row gap-4">
+                <input
+                  type="text"
+                  placeholder={`Search ${activeSection}`}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full md:w-1/2 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+                {activeSection === "orders" && (
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="w-full md:w-1/4 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  >
+                    <option value="">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="processing">Processing</option>
+                    <option value="shipped">Shipped</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="refunded">Refunded</option>
+                  </select>
+                )}
+              </div>
+              {activeSection === "users" && (
+                <div>
+                  <h3 className="text-xl font-bold mb-4">Manage Users</h3>
+                  {loading ? (
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {filteredData(users, "users").map((user) => (
+                          <div
+                            key={user._id}
+                            className="bg-white p-6 rounded-lg shadow hover:shadow-xl transition transform hover:-translate-y-1"
+                          >
+                            <p className="text-gray-600">
+                              <strong>Email:</strong> {user.email}
+                            </p>
+                            <p className="text-gray-600">
+                              <strong>Username:</strong>{" "}
+                              {user.username || "N/A"}
+                            </p>
+                            <p className="text-gray-600">
+                              <strong>Admin:</strong>{" "}
+                              {user.isAdmin ? "Yes" : "No"}
+                            </p>
 
-      {/* Main Content */}
-      <div className="ml-64 p-8">
-        {activeTab === 'dashboard' && renderDashboard()}
-        {activeTab === 'users' && renderUsers()}
-        {activeTab === 'products' && renderProducts()}
-        {activeTab === 'orders' && renderOrders()}
-      </div>
-
-      {/* Modals */}
-      {renderModal()}
+                            {editingUserId === user._id ? (
+                              <form
+                                onSubmit={(e) => handleUserSubmit(e, user._id)}
+                                className="mt-4"
+                              >
+                                <div className="mb-4">
+                                  <label className="block text-gray-700">
+                                    Admin Status
+                                  </label>
+                                  <select
+                                    value={userForm.isAdmin?.toString()} // Ensure string value
+                                    onChange={(e) =>
+                                      setUserForm({ isAdmin: e.target.value })
+                                    }
+                                    className="w-full p-2 border rounded"
+                                    required
+                                  >
+                                    <option value="">Select Status</option>
+                                    <option value="true">Admin</option>
+                                    <option value="false">User</option>
+                                  </select>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    type="submit"
+                                    className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 disabled:bg-blue-400"
+                                    disabled={actionLoading[user._id]}
+                                  >
+                                    {actionLoading[user._id] ? (
+                                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mx-auto"></div>
+                                    ) : (
+                                      "Update Admin Status"
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingUserId(null)}
+                                    className="bg-gray-500 text-white p-2 rounded hover:bg-gray-600 disabled:bg-gray-400"
+                                    disabled={actionLoading[user._id]}
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUserDelete(user._id)}
+                                    className="bg-red-500 text-white p-2 rounded hover:bg-red-600 disabled:bg-red-400"
+                                    disabled={actionLoading[user._id]}
+                                  >
+                                    {actionLoading[user._id] ? (
+                                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mx-auto"></div>
+                                    ) : (
+                                      "Delete"
+                                    )}
+                                  </button>
+                                </div>
+                              </form>
+                            ) : (
+                              <div className="mt-4 flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingUserId(user._id); // Set the correct user ID to edit
+                                    setUserForm({
+                                      isAdmin: user.isAdmin.toString(),
+                                    }); // Initialize form with current value
+                                  }}
+                                  className="bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600"
+                                >
+                                  Edit Role
+                                </button>
+                                <button
+                                  onClick={() => handleUserDelete(user._id)}
+                                  className="bg-red-500 text-white p-2 rounded hover:bg-red-600"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-6 flex justify-center gap-4">
+                        <button
+                          onClick={() =>
+                            handlePageChange("users", page.users - 1)
+                          }
+                          className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 disabled:bg-blue-400"
+                          disabled={page.users === 1 || loading}
+                        >
+                          Previous
+                        </button>
+                        <span className="text-gray-800">
+                          Page {page.users} of {totalPages.users}
+                        </span>
+                        <button
+                          onClick={() =>
+                            handlePageChange("users", page.users + 1)
+                          }
+                          className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 disabled:bg-blue-400"
+                          disabled={page.users === totalPages.users || loading}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+              {activeSection === "products" && (
+                <div>
+                  <h3 className="text-xl font-bold mb-4">Manage Products</h3>
+                  <form
+                    onSubmit={handleProductSubmit}
+                    className="mb-6 bg-white p-4 rounded-lg shadow"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="mb-4">
+                        <label className="block text-gray-700">Name</label>
+                        <input
+                          type="text"
+                          value={productForm.name}
+                          onChange={(e) =>
+                            setProductForm({
+                              ...productForm,
+                              name: e.target.value,
+                            })
+                          }
+                          className="w-full p-2 border rounded"
+                          required
+                        />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-gray-700">Price</label>
+                        <input
+                          type="number"
+                          value={productForm.price}
+                          onChange={(e) =>
+                            setProductForm({
+                              ...productForm,
+                              price: e.target.value,
+                            })
+                          }
+                          className="w-full p-2 border rounded"
+                          required
+                        />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-gray-700">
+                          Description
+                        </label>
+                        <textarea
+                          value={productForm.description}
+                          onChange={(e) =>
+                            setProductForm({
+                              ...productForm,
+                              description: e.target.value,
+                            })
+                          }
+                          className="w-full p-2 border rounded"
+                        />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-gray-700">Stock</label>
+                        <input
+                          type="number"
+                          value={productForm.stock}
+                          onChange={(e) =>
+                            setProductForm({
+                              ...productForm,
+                              stock: e.target.value,
+                            })
+                          }
+                          className="w-full p-2 border rounded"
+                          required
+                        />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-gray-700">Brand</label>
+                        <input
+                          type="text"
+                          value={productForm.brand}
+                          onChange={(e) =>
+                            setProductForm({
+                              ...productForm,
+                              brand: e.target.value,
+                            })
+                          }
+                          className="w-full p-2 border rounded"
+                        />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-gray-700">Category</label>
+                        <input
+                          type="text"
+                          value={productForm.category}
+                          onChange={(e) =>
+                            setProductForm({
+                              ...productForm,
+                              category: e.target.value,
+                            })
+                          }
+                          className="w-full p-2 border rounded"
+                        />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-gray-700">
+                          Images (up to 4)
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleImageChange}
+                          className="w-full p-2 border rounded"
+                          name="images"
+                        />
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {imagePreviews.map((preview, index) => (
+                            <div key={index} className="relative">
+                              <img
+                                src={preview}
+                                alt="Preview"
+                                className="h-20 w-20 object-cover rounded"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeImage(index)}
+                                className="absolute top-0 right-0 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 disabled:bg-blue-400"
+                      disabled={loading}
+                    >
+                      {loading
+                        ? "Saving..."
+                        : editingProductId
+                        ? "Update Product"
+                        : "Add Product"}
+                    </button>
+                  </form>
+                  {selectedProduct && (
+                    <div className="mb-6 bg-white p-4 rounded-lg shadow">
+                      <h3 className="text-xl font-bold mb-2">
+                        Product Details
+                      </h3>
+                      <p>
+                        <strong>Name:</strong> {selectedProduct.name}
+                      </p>
+                      <p>
+                        <strong>Price:</strong> ${selectedProduct.price}
+                      </p>
+                      <p>
+                        <strong>Description:</strong>{" "}
+                        {selectedProduct.description || "N/A"}
+                      </p>
+                      <p>
+                        <strong>Stock:</strong> {selectedProduct.stock}
+                      </p>
+                      <p>
+                        <strong>Brand:</strong> {selectedProduct.brand || "N/A"}
+                      </p>
+                      <p>
+                        <strong>Category:</strong>{" "}
+                        {selectedProduct.category || "N/A"}
+                      </p>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {selectedProduct.images?.map((img, index) => (
+                          <img
+                            key={index}
+                            src={img.url}
+                            alt="Product"
+                            className="h-20 w-20 object-cover rounded"
+                          />
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => setSelectedProduct(null)}
+                        className="mt-2 bg-gray-500 text-white p-2 rounded hover:bg-gray-600"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  )}
+                  {loading ? (
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {filteredData(products, "products").map((product) => (
+                          <div
+                            key={product._id}
+                            className="bg-white p-6 rounded-lg shadow hover:shadow-xl transition transform hover:-translate-y-1"
+                          >
+                            <p className="text-gray-600">
+                              <strong>Name:</strong> {product.name}
+                            </p>
+                            <p className="text-gray-600">
+                              <strong>Price:</strong> ${product.price}
+                            </p>
+                            <p className="text-gray-600">
+                              <strong>Stock:</strong> {product.stock}
+                            </p>
+                            <div className="mt-4 flex gap-2">
+                              <button
+                                onClick={() => fetchProductDetails(product._id)}
+                                className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600 disabled:bg-blue-400"
+                                disabled={actionLoading[product._id]}
+                              >
+                                Details
+                              </button>
+                              <button
+                                onClick={() => handleProductEdit(product)}
+                                className="bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600 disabled:bg-yellow-400"
+                                disabled={actionLoading[product._id]}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleProductDelete(product._id)}
+                                className="bg-red-500 text-white p-2 rounded hover:bg-red-600 disabled:bg-red-400"
+                                disabled={actionLoading[product._id]}
+                              >
+                                {actionLoading[product._id] ? (
+                                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mx-auto"></div>
+                                ) : (
+                                  "Delete"
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-6 flex justify-center gap-4">
+                        <button
+                          onClick={() =>
+                            handlePageChange("products", page.products - 1)
+                          }
+                          className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 disabled:bg-blue-400"
+                          disabled={page.products === 1 || loading}
+                        >
+                          Previous
+                        </button>
+                        <span className="text-gray-800">
+                          Page {page.products} of {totalPages.products}
+                        </span>
+                        <button
+                          onClick={() =>
+                            handlePageChange("products", page.products + 1)
+                          }
+                          className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 disabled:bg-blue-400"
+                          disabled={
+                            page.products === totalPages.products || loading
+                          }
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+              {activeSection === "orders" && (
+                <div>
+                  <h3 className="text-xl font-bold mb-4">Manage Orders</h3>
+                  {loading ? (
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {filteredData(orders, "orders").map((order) => (
+                          <div
+                            key={order._id}
+                            className="bg-white p-6 rounded-lg shadow hover:shadow-xl transition transform hover:-translate-y-1"
+                          >
+                            <p className="text-gray-600">
+                              <strong>Order #:</strong> {order._id}
+                            </p>
+                            <p className="text-gray-600">
+                              <strong>Customer:</strong>{" "}
+                              {order.user.email || "N/A"}
+                            </p>
+                            <p className="text-gray-600">
+                              <strong>Amount:</strong> $
+                              {order.totalPrice || order.amount || "N/A"}
+                            </p>
+                            <p className="text-gray-600">
+                              <strong>Status:</strong> {order.status || "N/A"}
+                            </p>
+                            {editingOrderId === order._id ? (
+                              <form
+                                onSubmit={(e) =>
+                                  handleOrderSubmit(e, order._id)
+                                }
+                                className="mt-4"
+                              >
+                                <div className="mb-4">
+                                  <label className="block text-gray-700">
+                                    Update Status
+                                  </label>
+                                  <select
+                                    value={orderForm.status}
+                                    onChange={(e) =>
+                                      setOrderForm({ status: e.target.value })
+                                    }
+                                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-600"
+                                    required
+                                  >
+                                    <option value="">Select Status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="processing">
+                                      Processing
+                                    </option>
+                                    <option value="shipped">Shipped</option>
+                                    <option value="delivered">Delivered</option>
+                                    <option value="cancelled">Cancelled</option>
+                                  </select>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    type="submit"
+                                    className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 disabled:bg-blue-400"
+                                    disabled={actionLoading[order._id]}
+                                  >
+                                    {actionLoading[order._id] ? (
+                                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mx-auto"></div>
+                                    ) : (
+                                      "Update Status"
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingOrderId(null)}
+                                    className="bg-gray-500 text-white p-2 rounded hover:bg-gray-600 disabled:bg-gray-400"
+                                    disabled={actionLoading[order._id]}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </form>
+                            ) : (
+                              <div className="mt-4 flex gap-2">
+                                <button
+                                  onClick={() => handleOrderEdit(order)}
+                                  className="bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600 disabled:bg-yellow-400"
+                                  disabled={actionLoading[order._id]}
+                                >
+                                  Edit Status
+                                </button>
+                                <button
+                                  onClick={() => handleOrderDelete(order._id)}
+                                  className="bg-red-500 text-white p-2 rounded hover:bg-red-600 disabled:bg-red-400"
+                                  disabled={actionLoading[order._id]}
+                                >
+                                  {actionLoading[order._id] ? (
+                                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mx-auto"></div>
+                                  ) : (
+                                    "Delete"
+                                  )}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-6 flex justify-center gap-4">
+                        <button
+                          onClick={() =>
+                            handlePageChange("orders", page.orders - 1)
+                          }
+                          className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 disabled:bg-blue-400"
+                          disabled={page.orders === 1 || loading}
+                        >
+                          Previous
+                        </button>
+                        <span className="text-gray-800">
+                          Page {page.orders} of {totalPages.orders}
+                        </span>
+                        <button
+                          onClick={() =>
+                            handlePageChange("orders", page.orders + 1)
+                          }
+                          className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 disabled:bg-blue-400"
+                          disabled={
+                            page.orders === totalPages.orders || loading
+                          }
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };

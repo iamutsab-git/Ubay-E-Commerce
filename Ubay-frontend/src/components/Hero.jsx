@@ -2,11 +2,14 @@ import heroBackground from "../assets/Ubay-hero-master.png";
 import ProductCard from "../Card/ProductCard";
 import React, { useState, useEffect } from "react";
 import { getAllProducts } from "../Services/api";
+import { useNavigate } from "react-router-dom";
+
 
 const Hero = () => {
   const [popularProducts, setPopularProducts] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -23,7 +26,6 @@ const Hero = () => {
     loadProducts();
   }, []);
 
- 
 
   return (
     <div>
@@ -45,6 +47,7 @@ const Hero = () => {
                 Seamless Shopping, Anytime, Anywhere
               </p>
               <button
+              onClick={()=>navigate("/collection")}
                 className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full text-lg transition-all duration-300 hover:shadow-xl"
                 aria-label="Explore products now"
               >

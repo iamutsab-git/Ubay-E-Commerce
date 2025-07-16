@@ -7,6 +7,7 @@ import { IoCartOutline } from "react-icons/io5";
 import { FaRegUser } from "react-icons/fa";
 import {  searchProducts } from '../Services/api';
 import { IoClose } from 'react-icons/io5';
+import { useCart } from '../context/CartContext';
 
 const Navbar = () => {
     const {currentUser} = useContext(AuthContext)
@@ -15,6 +16,7 @@ const [loading, setLoading] = useState(false);
 const [error, setError] = useState("");
 const [searchResults, setSearchResults] = useState([]);
 const [searchQuery, setSearchQuery] = useState('');
+const {cartCount} = useCart();
   const handleSearch = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -171,7 +173,13 @@ const [searchQuery, setSearchQuery] = useState('');
                 )}
                 <Link to="/cart">
                   <li className='hover:text-orange-500 relative group'>
-                  <span><IoCartOutline /></span>
+                  <span><IoCartOutline size={24}/></span>
+                    {/* Cart counter badge */}
+        {cartCount > 0 && (
+          <span className="absolute -top-2 -right-2 bg-orange-600 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+            {cartCount}
+          </span>
+        )}
                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-orange-600 group-hover:w-full transition-all duration-300"></span>
 
                 </li>

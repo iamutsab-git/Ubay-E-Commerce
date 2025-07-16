@@ -43,7 +43,7 @@ export const createOrder = async (req, res) => {
 export const getOrder = async(req, res)=>{
     try{
         const orders = await Order.find({})
-        .populate('user',' id name email ')
+        .populate('user','id name email')
         .sort('-createdAt');
         res.json(orders);
 
@@ -104,12 +104,20 @@ export const updateOrderToDelivered = async (req, res) => {
     });
   }
 };
-
 export const updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const order = await Order.findById(req.params.id);
+    const validStatuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Refunded'];
 
+    // Validate input
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
+      });
+    }
+
+    const order = await Order.findById(req.params.id);
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -117,18 +125,9 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
-    // Validate status
-    const validStatuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Refunded'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid status value'
-      });
-    }
-
+    // Update order status and related fields
     order.status = status;
-
-    // Update timestamps based on status
+    
     if (status === 'Delivered') {
       order.isDelivered = true;
       order.deliveredAt = Date.now();
@@ -140,13 +139,16 @@ export const updateOrderStatus = async (req, res) => {
     const updatedOrder = await order.save();
     
     res.status(200).json({
+      success: true,
       data: updatedOrder
     });
 
   } catch (error) {
     console.error('Error updating order status:', error);
     res.status(500).json({
-      message: 'Server error'
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

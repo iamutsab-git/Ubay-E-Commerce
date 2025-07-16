@@ -44,10 +44,12 @@ const App = () => {
         <Route path="/payment-failed" element={<PaymentFailure/>} />
    <Route path="/product/:id" element={<><Navbar/><ProductPage /></>} />
    <Route path="/admin/dashboard" element={<Dashboard/>}/>
+   
        </Routes>
       <ToastContainer
-  position="bottom-center"
+  position="top-center"
   hideProgressBar
+  autoClose={1000}
   theme="dark"
   toastClassName="bg-zinc-900 text-white border-l-4 border-green-400 rounded shadow-md p-4"
   bodyClassName="text-sm font-medium"

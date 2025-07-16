@@ -9,6 +9,7 @@ import { apiRequest } from "../Services/api";
 const CartContext = createContext();
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
+  const [CartCount, setCartCount] = useState(0)
   const [loading, setLoading] = useState(false);
   const {currentUser} = useContext(AuthContext)
 
@@ -49,6 +50,7 @@ const addToCart = async(productItem, quantity)=>{
           withCredentials: true,
         }
       ); 
+      setCartCount(prev => prev + 1);
       setCartItems(res.data.items);
   }catch(error){
     console.log("Failed to Cart the Item", error);
