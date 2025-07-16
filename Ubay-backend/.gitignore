@@ -1,2 +1,3 @@
 node_modules .env logs .log coverage npm-debug.logyarn-debug.log* yarn-error.log* pnpm-debug.log* 
 lerna-debug.log* *.local
+.env*
