@@ -31,7 +31,7 @@ const {cartCount} = useCart();
       setLoading(true);
       const result = await searchProducts(query);
       console.log("API Response:", result); 
-       const formattedResults = result.data.map(product => ({
+       const formattedResults = result.map(product => ({
       id: product._id, // MongoDB uses _id
       name: product.name,
       price: product.price,

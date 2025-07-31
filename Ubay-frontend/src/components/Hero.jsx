@@ -28,15 +28,16 @@ const Hero = () => {
 
 
   return (
-    <div>
-      <section className="relative h-[50vh]  md:h-[80vh] overflow-hidden">
+    <div className="bg-gray-100 m-0 ">
+   <section className="relative h-[50vh] max-w-6xl mx-auto md:h-[80vh] overflow-hidden
+    shadow-[10px_0_15px_-3px_rgba(0,0,0,0.3),-10px_0_15px_-3px_rgba(0,0,0,0.3)]">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-fixed"
          
         ><img
         src={heroBackground}
         alt="Hero Background"
-       className="absolute inset-0 w-full h-full object-cover object-center"/>
+       className="absolute inset-0 w-full  h-full object-cover object-center"/>
           {/* Content Overlay */}
           <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
             <div className="text-center px-4 max-w-4xl mx-auto">
@@ -59,7 +60,7 @@ const Hero = () => {
         
       </section>
         {/* Styled Product Card Section */}
-      <div className="bg-gray-100 sm:px-6 lg:px-8">
+      <div className="bg-gray-100 shadow-2xl shadow-gray-600 max-w-6xl mx-auto sm:px-6 lg:px-8">
         <ProductCard   products={popularProducts}  title="Popular Products" />
         <ProductCard   products={popularProducts}  title="Popular Products" />
         <ProductCard   products={popularProducts}  title="Popular Products" />
