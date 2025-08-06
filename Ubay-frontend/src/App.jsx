@@ -16,7 +16,7 @@ import Dashboard from './admin/Dashboard'
 import UpdateProfile from './components/UpdateProfile'
 import CheckoutForm from './pages/CheckOutForm'
 import PaymentSuccess from './pages/PaymentSuccess'
-import PaymentFailure from './pages/paymentFailure'
+import PaymentFailure from './pages/PaymentFailure'
 import Payment from './pages/Payment'
 
 const App = () => {
