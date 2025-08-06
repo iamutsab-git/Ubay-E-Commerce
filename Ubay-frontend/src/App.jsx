@@ -12,12 +12,12 @@ import {ToastContainer} from "react-toastify";
 import ProductPage from './pages/ProductPage'
 import Profile from './pages/profile'
 import Cart from './pages/Cart'
-import Dashboard from './admin/Dashboard'
 import UpdateProfile from './components/UpdateProfile'
 import CheckoutForm from './pages/CheckOutForm'
 import PaymentSuccess from './pages/PaymentSuccess'
 import PaymentFailure from './pages/PaymentFailure'
 import Payment from './pages/Payment'
+import Dashboard from './admin/Dashboard'
 
 const App = () => {
   return (
@@ -34,6 +34,7 @@ const App = () => {
         <Route path="/collection" element={<><Navbar/><Collection/></>}/>
         <Route path="/signup" element={<SignUp/>}/>
         <Route path="/login" element={<Login/>}/>
+        <Route path="/admin/dashboard" element={<Dashboard/>}/>
         <Route path="/profile" element={<><Navbar/><Profile /></>} />
         <Route path="/edit" element={<><Navbar/><UpdateProfile /></>} />
         <Route path="/cart" element={<><Navbar/><Cart/></>} />
@@ -41,8 +42,9 @@ const App = () => {
         <Route path="/Payment" element={<Payment/>} />
         <Route path="/payment-success" element={<PaymentSuccess/>} />
         <Route path="/payment-failed" element={<PaymentFailure/>} />
+
    <Route path="/product/:id" element={<><Navbar/><ProductPage /></>} />
-   <Route path="/admin/dashboard" element={<Dashboard/>}/>
+   
    
        </Routes>
       <ToastContainer
