@@ -15,7 +15,7 @@ import Cart from './pages/Cart'
 import Dashboard from './admin/Dashboard'
 import UpdateProfile from './components/UpdateProfile'
 import CheckoutForm from './pages/CheckOutForm'
-import PaymentSuccess from './pages/paymentSuccess'
+import PaymentSuccess from './pages/PaymentSuccess'
 import PaymentFailure from './pages/paymentFailure'
 import Payment from './pages/Payment'
 
