@@ -73,17 +73,12 @@ Start the Frontend
 cd Ubay-frontend
 npm run dev
 
-
-The frontend will be available at http://localhost:5173 (default Vite port).
-For a production build, run npm run build.
-
+The frontend will be available at http://localhost:5173 (default Vite port).For a production build, run npm run build.
 Start the Backend
 cd ../Ubay-backend
 npm start
 
-
 The backend API will be available at http://localhost:3000 (or your configured port).
-
 🗂️ Project Structure
 Ubay-E-Commerce/
 ├── .gitignore              # Shared ignores for the monorepo
